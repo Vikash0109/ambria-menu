@@ -110,7 +110,11 @@ export default function MenuPage() {
   }, [collectionKey, formSubmitted])
 
   function addItem(key) {
-    if (!orderRef.current.includes(key)) {
+    // Only addon/extras items belong in orderList — primary items are always
+    // included in the order and should never appear in the sidebar
+    const [si] = key.split('__').map(Number)
+    const isAddon = Boolean(sections[si]?._isAddon)
+    if (isAddon && !orderRef.current.includes(key)) {
       orderRef.current = [...orderRef.current, key]
       syncOrderList()
     }
@@ -118,11 +122,16 @@ export default function MenuPage() {
   }
 
   function removeItem(key) {
+    const [si] = key.split('__').map(Number)
+    const isAddon = Boolean(sections[si]?._isAddon)
     setSelected(prev => {
       const qty = (prev[key] ?? 0) - 1
       if (qty <= 0) {
-        orderRef.current = orderRef.current.filter(k => k !== key)
-        syncOrderList()
+        // Only remove from orderList if it's an addon item
+        if (isAddon) {
+          orderRef.current = orderRef.current.filter(k => k !== key)
+          syncOrderList()
+        }
         setItemOpts(o => { const n = { ...o }; delete n[key]; return n })
         const next = { ...prev }; delete next[key]; return next
       }
