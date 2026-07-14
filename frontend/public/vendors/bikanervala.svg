@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 140">
+  <!-- Red background -->
+  <rect width="300" height="140" rx="10" fill="#E31837"/>
+  <!-- Yellow stripes at top -->
+  <rect x="20" y="0" width="20" height="45" fill="#FFD700"/>
+  <rect x="60" y="0" width="20" height="45" fill="#FFD700"/>
+  <rect x="100" y="0" width="20" height="45" fill="#FFD700"/>
+  <rect x="140" y="0" width="20" height="45" fill="#FFD700"/>
+  <rect x="180" y="0" width="20" height="45" fill="#FFD700"/>
+  <rect x="220" y="0" width="20" height="45" fill="#FFD700"/>
+  <rect x="260" y="0" width="20" height="45" fill="#FFD700"/>
+  <!-- White text banner area -->
+  <rect x="8" y="42" width="284" height="58" rx="8" fill="white"/>
+  <!-- Brand text -->
+  <text x="150" y="83" font-family="Arial Black,Arial,sans-serif" font-size="26" font-weight="900" fill="#E31837" text-anchor="middle" letter-spacing="1">BIKANERVALA</text>
+  <!-- Yellow dots row at bottom -->
+  <circle cx="30" cy="118" r="8" fill="#FFD700"/>
+  <circle cx="58" cy="118" r="8" fill="#FFD700"/>
+  <circle cx="86" cy="118" r="8" fill="#FFD700"/>
+  <circle cx="114" cy="118" r="8" fill="#FFD700"/>
+  <circle cx="142" cy="118" r="8" fill="#FFD700"/>
+  <circle cx="170" cy="118" r="8" fill="#FFD700"/>
+  <circle cx="198" cy="118" r="8" fill="#FFD700"/>
+  <circle cx="226" cy="118" r="8" fill="#FFD700"/>
+  <circle cx="254" cy="118" r="8" fill="#FFD700"/>
+  <circle cx="274" cy="118" r="8" fill="#FFD700"/>
+</svg>

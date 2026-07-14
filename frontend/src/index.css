@@ -1,0 +1,223 @@
+@import 'tailwindcss';
+
+@layer base {
+  :root {
+    /* ── Gold palette ─────────────────────────────────────────── */
+    --gold:         #c9a84c;
+    --gold-light:   #e8c55a;
+    --gold-bright:  #f0d060;
+    --gold-dim:     #8a6f2e;
+    --gold-muted:   #4a3a1a;
+    --gold-glow:    rgba(201,168,76,0.25);
+
+    /* ── Surface scale ────────────────────────────────────────── */
+    --black:        #060606;
+    --surface-0:    #0a0a0a;
+    --surface-1:    #0f0f0f;
+    --surface-2:    #141414;
+    --surface-3:    #1a1a1a;
+    --surface-4:    #222222;
+    --surface-5:    #2a2a2a;
+    --surface-6:    #333333;
+
+    /* ── Borders ──────────────────────────────────────────────── */
+    --border:       rgba(201,168,76,0.18);
+    --border-soft:  rgba(201,168,76,0.09);
+    --border-hard:  rgba(201,168,76,0.35);
+    --border-white: rgba(255,255,255,0.06);
+
+    /* ── Text ─────────────────────────────────────────────────── */
+    --text-primary:   #f2ead8;
+    --text-secondary: #a09070;
+    --text-muted:     #7a6448;
+    --text-dim:       #5a4a32;
+
+    /* ── Status colours (on dark) ─────────────────────────────── */
+    --status-pending-bg:   rgba(234,179,8,0.12);
+    --status-pending-text: #fbbf24;
+    --status-pending-border: rgba(234,179,8,0.3);
+
+    --status-confirmed-bg:   rgba(34,197,94,0.12);
+    --status-confirmed-text: #4ade80;
+    --status-confirmed-border: rgba(34,197,94,0.3);
+
+    --status-cancelled-bg:   rgba(239,68,68,0.12);
+    --status-cancelled-text: #f87171;
+    --status-cancelled-border: rgba(239,68,68,0.3);
+
+    font-family: 'Cormorant Garamond', 'Playfair Display', Georgia, 'Times New Roman', serif;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  html, body, #root {
+    min-height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--surface-1);
+    color: var(--text-primary);
+  }
+
+  * { box-sizing: border-box; }
+
+  /* ── Inputs — make browser date/select pickers dark ─────────── */
+  input[type="date"]::-webkit-calendar-picker-indicator,
+  input[type="time"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.7) sepia(1) saturate(3) hue-rotate(10deg);
+    cursor: pointer;
+  }
+
+  select option {
+    background: var(--surface-4);
+    color: var(--text-primary);
+  }
+
+  /* ── Scrollbar — thin gold on dark ──────────────────────────── */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--gold-muted) transparent;
+  }
+  *::-webkit-scrollbar        { width: 4px; height: 4px; }
+  *::-webkit-scrollbar-track  { background: transparent; }
+  *::-webkit-scrollbar-thumb  { background: var(--gold-muted); border-radius: 2px; }
+  *::-webkit-scrollbar-thumb:hover { background: var(--gold-dim); }
+
+  .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+
+  /* Contact form textarea — no scrollbar, no resize grip */
+  textarea.clean-field {
+    resize: none;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  textarea.clean-field::-webkit-scrollbar { display: none; }
+  textarea.clean-field::-webkit-resizer    { display: none; }
+
+  /* Crockery notes textarea placeholder */
+  textarea.crockery-notes::placeholder {
+    color: var(--text-dim);
+  }
+  textarea.crockery-notes::-webkit-scrollbar { display: none; }
+}
+
+/* ── Luxury utility classes ───────────────────────────────────────────────── */
+
+/* Gold shimmer gradient text */
+.gold-text {
+  background: linear-gradient(135deg, #c9a84c 0%, #f0d060 40%, #c9a84c 70%, #8a6f2e 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Subtle animated shimmer for hero text */
+.gold-text-anim {
+  background: linear-gradient(
+    90deg,
+    #8a6f2e 0%, #c9a84c 25%, #f0d060 50%, #c9a84c 75%, #8a6f2e 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: goldShimmer 4s linear infinite;
+}
+
+@keyframes goldShimmer {
+  from { background-position: 0% center; }
+  to   { background-position: 200% center; }
+}
+
+/* Gold gradient horizontal rule */
+.gold-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  border: none;
+}
+
+/* Luxury card — dark surface with gold border */
+.luxury-card {
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+}
+
+/* Luxury card header */
+.luxury-card-header {
+  padding: 1rem 1.25rem;
+  background: var(--surface-4);
+  border-bottom: 1px solid var(--border-soft);
+}
+
+/* Gold button */
+.btn-gold {
+  background: linear-gradient(135deg, #c9a84c 0%, #f0d060 50%, #c9a84c 100%);
+  background-size: 200% auto;
+  color: #0a0a0a;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  transition: background-position 0.4s ease, box-shadow 0.3s ease, transform 0.15s ease;
+}
+.btn-gold:hover {
+  background-position: right center;
+  box-shadow: 0 6px 28px rgba(201,168,76,0.35);
+  transform: translateY(-1px);
+}
+.btn-gold:active { transform: translateY(0); }
+
+/* Ghost gold button */
+.btn-ghost-gold {
+  background: transparent;
+  border: 1px solid var(--border-hard);
+  color: var(--gold);
+  transition: background 0.2s ease, color 0.2s ease;
+}
+.btn-ghost-gold:hover {
+  background: rgba(201,168,76,0.08);
+  color: var(--gold-light);
+}
+
+/* Dark input field */
+.input-luxury {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(201,168,76,0.2);
+  background: var(--surface-4);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.input-luxury::placeholder { color: var(--text-muted); }
+.input-luxury:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(201,168,76,0.12);
+}
+
+/* Thin gold top-accent bar */
+.gold-accent-bar {
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold), var(--gold-light), var(--gold), transparent);
+}
+
+/* Ornamental corner — pseudo element helpers */
+.luxury-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  border: 1px solid var(--border-hard);
+  color: var(--gold);
+  background: rgba(201,168,76,0.08);
+}

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 180">
+  <!-- Bucket shape -->
+  <path d="M20 40 Q20 20 80 20 Q140 20 140 40 L148 160 Q148 170 80 170 Q12 170 12 160 Z" fill="white" stroke="#1a1a1a" stroke-width="3"/>
+  <!-- Red vertical stripes -->
+  <path d="M46 20 L40 170" stroke="#E4002B" stroke-width="18" stroke-linecap="butt" clip-path="url(#bucket)"/>
+  <path d="M114 20 L120 170" stroke="#E4002B" stroke-width="18" stroke-linecap="butt" clip-path="url(#bucket)"/>
+  <clipPath id="bucket">
+    <path d="M20 40 Q20 20 80 20 Q140 20 140 40 L148 160 Q148 170 80 170 Q12 170 12 160 Z"/>
+  </clipPath>
+  <!-- Colonel face placeholder circle -->
+  <circle cx="80" cy="88" r="36" fill="#f5e6d3" stroke="#1a1a1a" stroke-width="2"/>
+  <!-- Simple face details -->
+  <ellipse cx="68" cy="82" rx="5" ry="6" fill="#1a1a1a"/>
+  <ellipse cx="92" cy="82" rx="5" ry="6" fill="#1a1a1a"/>
+  <path d="M65 98 Q80 108 95 98" stroke="#1a1a1a" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <!-- Bow tie -->
+  <path d="M68 112 L80 106 L92 112 L80 118 Z" fill="#1a1a1a"/>
+  <!-- KFC text -->
+  <text x="80" y="156" font-family="Arial Black,Arial,sans-serif" font-size="22" font-weight="900" fill="#1a1a1a" text-anchor="middle" letter-spacing="3">KFC</text>
+</svg>

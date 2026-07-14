@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 120">
+  <!-- Outer gold border ellipse -->
+  <ellipse cx="100" cy="60" rx="98" ry="58" fill="#C8972B"/>
+  <!-- Red main ellipse -->
+  <ellipse cx="100" cy="60" rx="90" ry="50" fill="#C8131A"/>
+  <!-- Inner gold ring -->
+  <ellipse cx="100" cy="60" rx="90" ry="50" fill="none" stroke="#F0C040" stroke-width="4"/>
+  <!-- HR monogram circle -->
+  <circle cx="100" cy="42" r="20" fill="none" stroke="#F0C040" stroke-width="2.5"/>
+  <!-- H letter -->
+  <text x="92" y="50" font-family="Georgia,serif" font-size="16" font-weight="bold" fill="#F0C040">HR</text>
+  <!-- Haldiram's text -->
+  <text x="100" y="78" font-family="Georgia,serif" font-size="18" font-weight="bold" fill="white" text-anchor="middle" font-style="italic">Haldiram's</text>
+</svg>
