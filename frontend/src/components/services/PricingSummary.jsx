@@ -1,4 +1,4 @@
-import { WAITER_PRICE_EACH, OUTFIT_PRICE_EACH, VENDORS, platePrice } from '../../constants/services.js'
+import { WAITER_PRICE_EACH, OUTFIT_PRICE_EACH, VENDORS, platePriceForSection } from '../../constants/services.js'
 
 function SummaryRow({ label, detail, amount }) {
   return (
@@ -21,8 +21,8 @@ export default function PricingSummary({
   addOnTotal,
   submitting, onConfirm,
 }) {
-  const paidCrockerySections = Object.values(crockeryChoices)
-    .filter(pid => pid && platePrice(pid) > 0).length
+  const paidCrockerySections = Object.entries(crockeryChoices)
+    .filter(([sec, pid]) => pid && platePriceForSection(sec, pid) > 0).length
 
   return (
     <div
