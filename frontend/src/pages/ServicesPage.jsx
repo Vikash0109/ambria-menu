@@ -99,7 +99,7 @@ export default function ServicesPage() {
   }
 
   function toggleOutfit(id) {
-    setOutfits(prev => prev.includes(id) ? [] : [id])
+    setOutfits(prev => prev.includes(id) ? prev : [id])
   }
   function toggleVendor(id) {
     setVendors(prev => prev.includes(id) ? prev.filter(v => v !== id) : [...prev, id])
