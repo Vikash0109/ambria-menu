@@ -191,8 +191,8 @@ export default function StaffCard({
           >
             <span className="text-sm" style={{ color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif' }}>
               {selectedOutfits.length > 0
-                ? `${selectedOutfits.length} outfit${selectedOutfits.length !== 1 ? 's' : ''} × ₹${OUTFIT_PRICE_EACH}`
-                : 'No outfits selected'}
+                ? `1 outfit × ₹${OUTFIT_PRICE_EACH}`
+                : 'No outfit selected'}
             </span>
             <span className="text-sm font-black" style={{ color: 'var(--text-primary)', fontFamily: 'Inter, sans-serif' }}>
               ₹{outfitTotal}

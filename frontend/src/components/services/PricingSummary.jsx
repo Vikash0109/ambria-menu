@@ -56,7 +56,7 @@ export default function PricingSummary({
           <SummaryRow
             label="Outfit Charges"
             detail={selectedOutfits.length > 0
-              ? `₹${OUTFIT_PRICE_EACH} × ${selectedOutfits.length} outfit${selectedOutfits.length !== 1 ? 's' : ''}`
+              ? `₹${OUTFIT_PRICE_EACH} × 1 outfit`
               : 'None selected'}
             amount={`₹${outfitTotal}`}
           />
