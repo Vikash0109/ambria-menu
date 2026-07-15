@@ -252,21 +252,35 @@ export default function MenuPage() {
         _ii: ii,
         _si: activeSection,
         _sectionName: currentSection.section,
-        _isAddon: Boolean(currentSection._isAddon),
+        _isAddon: false,
       }))
     }
-    // Global search — scan all sections
+    // Global search — scan all sections (skip addon sections, they appear inline)
     const q = searchQuery.toLowerCase()
     const results = []
     sections.forEach((sec, si) => {
+      if (sec._isAddon) return
       sec.items.forEach((it, ii) => {
         if (it.name.toLowerCase().includes(q) || it.description?.toLowerCase().includes(q)) {
-          results.push({ ...it, _ii: ii, _si: si, _sectionName: sec.section, _isAddon: Boolean(sec._isAddon) })
+          results.push({ ...it, _ii: ii, _si: si, _sectionName: sec.section, _isAddon: false })
         }
       })
     })
     return results
   }, [currentSection, searchQuery, isGlobalSearch, sections, activeSection])
+
+  // Addon items that match the current primary section (shown inline below a dotted divider)
+  const addonDisplayItems = useMemo(() => {
+    if (isGlobalSearch || !currentSection || currentSection._isAddon) return []
+    const results = []
+    sections.forEach((sec, si) => {
+      if (!sec._isAddon || sec.section !== currentSection.section) return
+      sec.items.forEach((it, ii) => {
+        results.push({ ...it, _ii: ii, _si: si, _sectionName: sec.section, _isAddon: true })
+      })
+    })
+    return results
+  }, [currentSection, isGlobalSearch, sections])
 
   const totalSelected = orderList.length
 
@@ -343,12 +357,18 @@ export default function MenuPage() {
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-2 px-3 py-3">
-            {sections.map((sec, idx) => {
+            {sections.filter(sec => !sec._isAddon).map((sec) => {
+              const idx     = sections.indexOf(sec)
               const isActive  = activeSection === idx
               const nonVeg    = isNonVegSection(sec.section)
-              const isAddon   = Boolean(sec._isAddon)
               const dot       = sectionIcon(sec.section)
               const selCount  = sec.items.filter((_, ii) => selected[itemKey(idx, ii)] > 0).length
+              // also count selected addon items for this section
+              const addonSelCount = sections.reduce((acc, s, si) => {
+                if (!s._isAddon || s.section !== sec.section) return acc
+                return acc + s.items.filter((_, ii) => selected[itemKey(si, ii)] > 0).length
+              }, 0)
+              const totalSel  = selCount + addonSelCount
               const accentColor = nonVeg ? '#ef4444' : 'var(--gold)'
               return (
                 <button
@@ -391,22 +411,7 @@ export default function MenuPage() {
                       }}
                     />
                     <div className="flex items-center gap-1">
-                      {isAddon && (
-                        <span
-                          style={{
-                            fontSize: '0.5rem', fontWeight: 800,
-                            letterSpacing: '0.1em', textTransform: 'uppercase',
-                            padding: '1px 4px', borderRadius: '999px',
-                            background: 'rgba(201,168,76,0.08)',
-                            border: '1px solid rgba(201,168,76,0.2)',
-                            color: 'var(--gold-dim)',
-                            fontFamily: 'Inter, sans-serif',
-                          }}
-                        >
-                          ADD-ON
-                        </span>
-                      )}
-                      {selCount > 0 && (
+                      {totalSel > 0 && (
                         <span
                           style={{
                             fontSize: '0.6rem', fontWeight: 800, lineHeight: 1,
@@ -417,7 +422,7 @@ export default function MenuPage() {
                             flexShrink: 0,
                           }}
                         >
-                          {selCount}
+                          {totalSel}
                         </span>
                       )}
                     </div>
@@ -501,33 +506,26 @@ export default function MenuPage() {
                     style={{ background: 'var(--surface-4)' }}
                   />
                 ))
-              : sections.map((sec, idx) => {
-                  // Separator before first addon section
-                  const isFirstAddon = sec._isAddon && (idx === 0 || !sections[idx - 1]._isAddon)
-                  const selCount  = sec.items.filter((_, ii) => selected[itemKey(idx, ii)] > 0).length
-                  const isActive  = activeSection === idx
+              : sections.filter(sec => !sec._isAddon).map((sec, idx) => {
+                  const realIdx   = sections.indexOf(sec)
+                  const selCount  = sec.items.filter((_, ii) => selected[itemKey(realIdx, ii)] > 0).length
+                  // also count selected addon items for this section name
+                  const addonSelCount = sections.reduce((acc, s, si) => {
+                    if (!s._isAddon || s.section !== sec.section) return acc
+                    return acc + s.items.filter((_, ii) => selected[itemKey(si, ii)] > 0).length
+                  }, 0)
+                  const totalSel  = selCount + addonSelCount
+                  const isActive  = activeSection === realIdx
                   const nonVeg    = isNonVegSection(sec.section)
-                  const isAddon   = Boolean(sec._isAddon)
                   const dotColor  = sectionIcon(sec.section)
                   const accentClr = nonVeg ? '#ef4444' : 'var(--gold)'
                   const textColor = isActive
                     ? nonVeg ? '#fca5a5' : 'var(--gold-light)'
                     : 'var(--text-secondary)'
                   return (
-                    <div key={idx}>
-                      {isFirstAddon && (
-                        <div style={{ margin: '0.5rem 0.75rem 0.25rem', paddingTop: '0.4rem', borderTop: '1px solid rgba(201,168,76,0.12)' }}>
-                          <p style={{
-                            fontSize: '0.55rem', fontWeight: 900, letterSpacing: '0.2em',
-                            textTransform: 'uppercase', color: '#63b3ed',
-                            fontFamily: 'Inter, sans-serif', padding: '0 0.1rem',
-                          }}>
-                            Extras from {addonLabel}
-                          </p>
-                        </div>
-                      )}
+                    <div key={realIdx}>
                     <button
-                      onClick={() => switchSection(idx)}
+                      onClick={() => switchSection(realIdx)}
                       className="flex items-center gap-2.5 w-full"
                       style={{
                         padding: '0.5rem 0.85rem 0.5rem 0.75rem',
@@ -564,24 +562,8 @@ export default function MenuPage() {
                       >
                         {sec.section}
                       </span>
-                      {/* ADD-ON pill */}
-                      {isAddon && (
-                        <span
-                          style={{
-                            flexShrink: 0, fontSize: '0.52rem', fontWeight: 800,
-                            letterSpacing: '0.1em', textTransform: 'uppercase',
-                            padding: '1px 5px', borderRadius: '999px',
-                            background: 'rgba(201,168,76,0.08)',
-                            border: '1px solid rgba(201,168,76,0.2)',
-                            color: 'var(--gold-dim)',
-                            fontFamily: 'Inter, sans-serif',
-                          }}
-                        >
-                          ADD-ON
-                        </span>
-                      )}
                       {/* selected badge */}
-                      {selCount > 0 && (
+                      {totalSel > 0 && (
                         <span
                           style={{
                             flexShrink: 0, fontSize: '0.6rem', fontWeight: 800,
@@ -591,7 +573,7 @@ export default function MenuPage() {
                             fontFamily: 'Inter, sans-serif',
                           }}
                         >
-                          {selCount}
+                          {totalSel}
                         </span>
                       )}
                     </button>
@@ -696,22 +678,6 @@ export default function MenuPage() {
                         >
                           {currentSection.section}
                         </p>
-                        {currentSection._isAddon && (
-                          <span
-                            style={{
-                              fontSize: '0.58rem', fontWeight: 800,
-                              letterSpacing: '0.12em', textTransform: 'uppercase',
-                              padding: '2px 7px', borderRadius: '999px',
-                              background: 'rgba(201,168,76,0.08)',
-                              border: '1px solid rgba(201,168,76,0.22)',
-                              color: 'var(--gold-dim)',
-                              fontFamily: 'Inter, sans-serif',
-                              flexShrink: 0,
-                            }}
-                          >
-                            ADD-ON from {addonLabel}
-                          </span>
-                        )}
                       </div>
                       <p style={{ fontSize: '0.65rem', marginTop: '2px', color: 'var(--text-muted)', fontFamily: 'Inter, sans-serif' }}>
                         {sectionCrockery(currentSection.section)}
@@ -780,48 +746,81 @@ export default function MenuPage() {
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-2 xl:grid-cols-3 gap-3" style={{ alignItems: 'stretch' }}>
-                {displayItems.map(item => (
-                  <div key={`${item._si}__${item._ii}`} className="flex flex-col">
-                    {isGlobalSearch && (
-                      <div className="flex items-center gap-1.5 mb-1.5 px-0.5">
-                        <span style={{
-                          width: '6px', height: '6px', borderRadius: '50%', flexShrink: 0, display: 'inline-block',
-                          background: sectionIcon(item._sectionName),
-                        }} />
-                        <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontFamily: 'Inter,sans-serif', letterSpacing: '0.05em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {item._sectionName}
-                        </span>
-                        {item._isAddon && (
+              <>
+                <div className="grid grid-cols-2 xl:grid-cols-3 gap-3" style={{ alignItems: 'stretch' }}>
+                  {displayItems.map(item => (
+                    <div key={`${item._si}__${item._ii}`} className="flex flex-col">
+                      {isGlobalSearch && (
+                        <div className="flex items-center gap-1.5 mb-1.5 px-0.5">
                           <span style={{
-                            fontSize: '0.5rem', fontWeight: 800, letterSpacing: '0.1em',
-                            textTransform: 'uppercase', padding: '1px 4px', borderRadius: '999px',
-                            background: 'rgba(201,168,76,0.08)', border: '1px solid rgba(201,168,76,0.2)',
-                            color: 'var(--gold-dim)', fontFamily: 'Inter, sans-serif', flexShrink: 0,
-                          }}>
-                            ADD-ON
+                            width: '6px', height: '6px', borderRadius: '50%', flexShrink: 0, display: 'inline-block',
+                            background: sectionIcon(item._sectionName),
+                          }} />
+                          <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontFamily: 'Inter,sans-serif', letterSpacing: '0.05em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {item._sectionName}
                           </span>
-                        )}
+                        </div>
+                      )}
+                      <div className="flex-1">
+                        <MenuItemCard
+                          key={item._ii}
+                          item={item}
+                          secIdx={item._si}
+                          itemIdx={item._ii}
+                          qty={selected[itemKey(item._si, item._ii)] ?? 0}
+                          opts={itemOpts[itemKey(item._si, item._ii)] ?? {}}
+                          sectionName={item._sectionName}
+                          isAddon={false}
+                          onAdd={addItem}
+                          onRemove={removeItem}
+                          onOptsChange={updateOpts}
+                        />
                       </div>
-                    )}
-                    <div className="flex-1">
-                      <MenuItemCard
-                        key={item._ii}
-                        item={item}
-                        secIdx={item._si}
-                        itemIdx={item._ii}
-                        qty={selected[itemKey(item._si, item._ii)] ?? 0}
-                        opts={itemOpts[itemKey(item._si, item._ii)] ?? {}}
-                        sectionName={item._sectionName}
-                        isAddon={Boolean(item._isAddon)}
-                        onAdd={addItem}
-                        onRemove={removeItem}
-                        onOptsChange={updateOpts}
-                      />
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+
+                {/* Addon items inline below dotted divider */}
+                {addonDisplayItems.length > 0 && (
+                  <>
+                    {/* Dotted divider with label */}
+                    <div style={{ margin: '1.25rem 0 1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <div style={{ flex: 1, borderTop: '2px dashed rgba(201,168,76,0.25)' }} />
+                      <span style={{
+                        fontSize: '0.6rem', fontWeight: 800, letterSpacing: '0.18em',
+                        textTransform: 'uppercase', color: 'var(--gold-dim)',
+                        fontFamily: 'Inter, sans-serif', whiteSpace: 'nowrap',
+                        padding: '2px 8px', borderRadius: '999px',
+                        background: 'rgba(201,168,76,0.07)',
+                        border: '1px dashed rgba(201,168,76,0.25)',
+                      }}>
+                        Extras from {addonLabel}
+                      </span>
+                      <div style={{ flex: 1, borderTop: '2px dashed rgba(201,168,76,0.25)' }} />
+                    </div>
+                    <div className="grid grid-cols-2 xl:grid-cols-3 gap-3" style={{ alignItems: 'stretch' }}>
+                      {addonDisplayItems.map(item => (
+                        <div key={`${item._si}__${item._ii}`} className="flex flex-col">
+                          <div className="flex-1">
+                            <MenuItemCard
+                              item={item}
+                              secIdx={item._si}
+                              itemIdx={item._ii}
+                              qty={selected[itemKey(item._si, item._ii)] ?? 0}
+                              opts={itemOpts[itemKey(item._si, item._ii)] ?? {}}
+                              sectionName={item._sectionName}
+                              isAddon={true}
+                              onAdd={addItem}
+                              onRemove={removeItem}
+                              onOptsChange={updateOpts}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </>
             )}
           </div>
         </div>
