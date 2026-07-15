@@ -270,11 +270,26 @@ export default function MenuPage() {
   }, [currentSection, searchQuery, isGlobalSearch, sections, activeSection])
 
   // Addon items that match the current primary section (shown inline below a dotted divider)
+  // Uses normalized matching: strips trailing parentheticals and compares case-insensitively
+  // so e.g. "Soup Station (Select any one)" matches "Soup Station (Select any two)",
+  // and "International Cuisine – Pan Asian" matches "International Cuisine – Pan Asian (Teppanyaki Live)"
   const addonDisplayItems = useMemo(() => {
     if (isGlobalSearch || !currentSection || currentSection._isAddon) return []
+
+    // Normalize: lowercase, strip trailing parenthetical "(…)" and whitespace
+    function normalize(name) {
+      return name.toLowerCase().replace(/\s*\(.*?\)\s*$/, '').trim()
+    }
+    const primaryNorm = normalize(currentSection.section)
+
     const results = []
     sections.forEach((sec, si) => {
-      if (!sec._isAddon || sec.section !== currentSection.section) return
+      if (!sec._isAddon) return
+      const addonNorm = normalize(sec.section)
+      // Match if either normalized name starts with the other (handles suffix differences)
+      if (addonNorm !== primaryNorm &&
+          !addonNorm.startsWith(primaryNorm) &&
+          !primaryNorm.startsWith(addonNorm)) return
       sec.items.forEach((it, ii) => {
         results.push({ ...it, _ii: ii, _si: si, _sectionName: sec.section, _isAddon: true })
       })
