@@ -158,8 +158,8 @@ export function drawInfoPage(doc, eventInfo, totalDishes, totalQty, texBase64) {
   // Event details card
   const cardX = FRAME + 8
   const cardW = PAGE_W - (FRAME + 8) * 2
-  const cardY = occY + 20
-  const ROW_H = 10
+  const cardY = occY + 22
+  const ROW_H = 14
 
   const fields = [
     ['CLIENT',          eventInfo.name      ?? '—'],
@@ -172,7 +172,7 @@ export function drawInfoPage(doc, eventInfo, totalDishes, totalQty, texBase64) {
     ['CONTACT',         eventInfo.phone     ?? '—'],
     ['EMAIL',           eventInfo.email     ?? '—'],
   ]
-  const cardH = fields.length * ROW_H + 10
+  const cardH = fields.length * ROW_H + 14
 
   // White card on texture for readability
   filled(doc, cardX, cardY, cardW, cardH, '#FDFCFA')
@@ -180,50 +180,50 @@ export function drawInfoPage(doc, eventInfo, totalDishes, totalQty, texBase64) {
   doc.setLineWidth(0.5)
   doc.rect(cardX, cardY, cardW, cardH)
   // Top accent strip
-  filled(doc, cardX, cardY, cardW, 3, C.heading)
+  filled(doc, cardX, cardY, cardW, 4, C.heading)
 
   const halfW  = cardW / 2
-  const leftX  = cardX + 8
-  const rightX = cardX + halfW + 8
-  const labW   = 28
+  const leftX  = cardX + 10
+  const rightX = cardX + halfW + 10
+  const labW   = 34
 
   fields.forEach(([label, value], i) => {
     const isLeft = i % 2 === 0
     const row    = Math.floor(i / 2)
-    const ry     = cardY + 5 + row * ROW_H * 2 + 4
+    const ry     = cardY + 7 + row * ROW_H * 2 + 4
     const lx     = isLeft ? leftX : rightX
     if (row > 0 && isLeft) {
-      hline(doc, cardX + 5, cardX + cardW - 5, ry - 2, C.creamBorder, 0.3)
+      hline(doc, cardX + 5, cardX + cardW - 5, ry - 3, C.creamBorder, 0.3)
     }
-    txt(doc, label, lx,        ry,     { size: 5.5, font: 'bold', color: C.muted })
-    txt(doc, value, lx + labW, ry + 6, { size: 8, font: 'bold', color: C.heading, maxW: halfW - labW - 10 })
+    txt(doc, label, lx,        ry,     { size: 7, font: 'bold', color: C.muted })
+    txt(doc, value, lx + labW, ry + 8, { size: 11, font: 'bold', color: C.heading, maxW: halfW - labW - 12 })
   })
   vline(doc, cardX + halfW, cardY + 5, cardY + cardH - 5, C.creamBorder, 0.3)
 
   // Stats pills
-  const statsY     = cardY + cardH + 14
+  const statsY     = cardY + cardH + 18
   const pills      = [
     { n: String(totalDishes), label: 'Dish Types' },
     { n: String(totalQty),    label: 'Servings'   },
     { n: String(eventInfo.guestCount ?? 0), label: 'Guests' },
   ]
-  const pillW      = 44
-  const pillGap    = 10
+  const pillW      = 52
+  const pillGap    = 14
   const pillTotalW = pills.length * pillW + (pills.length - 1) * pillGap
   const pillStartX = cx - pillTotalW / 2
 
   hline(doc, pillStartX - 4, pillStartX + pillTotalW + 4, statsY - 4, C.borderLight, 0.3)
   pills.forEach((p, i) => {
     const px = pillStartX + i * (pillW + pillGap)
-    filled(doc, px, statsY, pillW, 16, '#FDFCFA')
+    filled(doc, px, statsY, pillW, 22, '#FDFCFA')
     doc.setDrawColor(C.border)
     doc.setLineWidth(0.5)
-    doc.rect(px, statsY, pillW, 16)
-    filled(doc, px, statsY, pillW, 2.5, C.heading)
-    txt(doc, p.n,     px + pillW / 2, statsY + 10,   { size: 14, font: 'bold', color: C.heading, align: 'center' })
-    txt(doc, p.label, px + pillW / 2, statsY + 14.5, { size: 5,  color: C.muted,  align: 'center' })
+    doc.rect(px, statsY, pillW, 22)
+    filled(doc, px, statsY, pillW, 3.5, C.heading)
+    txt(doc, p.n,     px + pillW / 2, statsY + 14,   { size: 20, font: 'bold', color: C.heading, align: 'center' })
+    txt(doc, p.label, px + pillW / 2, statsY + 20,   { size: 6.5, color: C.muted, align: 'center' })
   })
-  hline(doc, pillStartX - 4, pillStartX + pillTotalW + 4, statsY + 20, C.borderLight, 0.3)
+  hline(doc, pillStartX - 4, pillStartX + pillTotalW + 4, statsY + 26, C.borderLight, 0.3)
 
   // Bottom contact
   const bottomY = PAGE_H - FRAME - 20

@@ -4,6 +4,7 @@ import { filled, hline, txt, wrap, guard } from './helpers.js'
 import { drawPageChrome, drawFooter } from './chrome.js'
 import {
   drawCoverPage,
+  drawInfoPage,
   drawMenuPageHeader,
   drawCompactInfoBlock,
   drawSectionHeading,
@@ -57,12 +58,14 @@ export async function generateOrderPdf({ eventInfo, selectedItems, services }) {
   const totalQty     = items.reduce((s, it) => s + (it.quantity ?? 1), 0)
   drawCoverPage(doc, eventInfo, bgBase64, logoBase64)
 
-  // ── Page 2: Menu page — compact event info block then menu items ──────────
+  // ── Page 2: Full event summary page ──────────────────────────────────────
+  doc.addPage()
+  drawInfoPage(doc, eventInfo, totalDishes, totalQty, texBase64)
+
+  // ── Page 3: Menu page — starts fresh ─────────────────────────────────────
   doc.addPage()
   drawPageChrome(doc, texBase64)
-  drawMenuPageHeader(doc, eventInfo)
-
-  let y = drawCompactInfoBlock(doc, eventInfo, totalDishes, totalQty, addonCount)
+  let y = drawMenuPageHeader(doc, eventInfo)
   y = drawSectionHeading(doc, 'Selected Menu', y)
 
   // Split items into primary and addon (extra) groups
