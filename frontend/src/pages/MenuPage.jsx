@@ -209,6 +209,113 @@ export default function MenuPage() {
     navigate('/services')
   }
 
+  // ── Derived constants (must be before any early return — Rules of Hooks) ──
+  const menuLabel      = guestCount > 150 ? 'Multicuisine' : 'Magnum'
+  const addonLabel     = guestCount > 150 ? 'Magnum'       : 'Multicuisine'
+  const prefLabel      = foodPref === 'nonveg' ? 'Non-Veg' : 'Veg'
+  const isGlobalSearch = searchQuery.trim().length > 0
+
+  // ── Section grouping ──────────────────────────────────────────────────────
+  // Sections sharing a common prefix before ' – ' are collapsed into one sidebar entry.
+  const sidebarSections = useMemo(() => {
+    const result = []
+    const primaryOnly = sections
+      .map((sec, idx) => ({ sec, idx }))
+      .filter(({ sec }) => !sec._isAddon)
+
+    const seen = new Set()
+    for (const { sec, idx } of primaryOnly) {
+      const dashPos = sec.section.indexOf(' \u2013 ')
+      const prefix  = dashPos >= 0 ? sec.section.slice(0, dashPos) : null
+
+      if (prefix && !seen.has(prefix)) {
+        const siblings = primaryOnly.filter(({ sec: s }) => s.section.startsWith(prefix + ' \u2013 '))
+        if (siblings.length > 1) {
+          seen.add(prefix)
+          result.push({
+            label: prefix,
+            repIdx: siblings[0].idx,
+            memberIndices: siblings.map(s => s.idx),
+            isGroup: true,
+          })
+          continue
+        }
+      }
+      if (prefix && seen.has(prefix)) continue
+      result.push({ label: sec.section, repIdx: idx, memberIndices: [idx], isGroup: false })
+    }
+    return result
+  }, [sections])
+
+  const activeSidebarEntry = useMemo(() =>
+    sidebarSections.find(e => e.memberIndices.includes(activeSection)) ?? sidebarSections[0],
+  [sidebarSections, activeSection])
+
+  const activeSections = useMemo(() =>
+    (activeSidebarEntry?.memberIndices ?? [activeSection]).map(i => sections[i]).filter(Boolean),
+  [activeSidebarEntry, activeSection, sections])
+
+  const displayItems = useMemo(() => {
+    if (!isGlobalSearch) {
+      if (!activeSidebarEntry) return []
+      const results = []
+      for (const sec of activeSections) {
+        const si = sections.indexOf(sec)
+        sec.items.forEach((it, ii) => {
+          results.push({
+            ...it, _ii: ii, _si: si, _sectionName: sec.section, _isAddon: false,
+            _subLabel: activeSidebarEntry.isGroup ? sec.section.split(' \u2013 ').slice(1).join(' \u2013 ') : null,
+          })
+        })
+      }
+      return results
+    }
+    const q = searchQuery.toLowerCase()
+    const results = []
+    sections.forEach((sec, si) => {
+      if (sec._isAddon) return
+      sec.items.forEach((it, ii) => {
+        if (it.name.toLowerCase().includes(q) || it.description?.toLowerCase().includes(q)) {
+          results.push({ ...it, _ii: ii, _si: si, _sectionName: sec.section, _isAddon: false, _subLabel: null })
+        }
+      })
+    })
+    return results
+  }, [activeSidebarEntry, activeSections, searchQuery, isGlobalSearch, sections])
+
+  const addonDisplayItems = useMemo(() => {
+    if (isGlobalSearch || !activeSidebarEntry || activeSidebarEntry.memberIndices.every(i => sections[i]?._isAddon)) return []
+
+    function normalize(name) {
+      return name.toLowerCase().replace(/\s*\(.*?\)\s*$/, '').trim()
+    }
+    const primaryNames = new Set(
+      activeSections.flatMap(sec => sec.items.map(it => it.name.toLowerCase().trim()))
+    )
+    const results = []
+    const seenNames = new Set()
+
+    activeSections.forEach(primarySec => {
+      const primaryNorm = normalize(primarySec.section)
+      sections.forEach((sec, si) => {
+        if (!sec._isAddon) return
+        const addonNorm = normalize(sec.section)
+        if (addonNorm !== primaryNorm &&
+            !addonNorm.startsWith(primaryNorm) &&
+            !primaryNorm.startsWith(addonNorm)) return
+        sec.items.forEach((it, ii) => {
+          const nameLower = it.name.toLowerCase().trim()
+          if (primaryNames.has(nameLower) || seenNames.has(nameLower)) return
+          seenNames.add(nameLower)
+          results.push({ ...it, _ii: ii, _si: si, _sectionName: sec.section, _isAddon: true, _subLabel: null })
+        })
+      })
+    })
+    return results
+  }, [activeSidebarEntry, activeSections, isGlobalSearch, sections])
+
+  const totalSelected = orderList.length
+
   if (!formSubmitted) {
     return (
       <div className="min-h-screen" style={{ background: 'var(--surface-1)' }}>
@@ -237,129 +344,6 @@ export default function MenuPage() {
       </div>
     )
   }
-
-  const menuLabel   = guestCount > 150 ? 'Multicuisine' : 'Magnum'
-  const addonLabel  = guestCount > 150 ? 'Magnum'       : 'Multicuisine'
-  const prefLabel   = foodPref === 'nonveg' ? 'Non-Veg' : 'Veg'
-  const currentSection = sections[activeSection]
-  const isGlobalSearch = searchQuery.trim().length > 0
-
-  // ── Section grouping ──────────────────────────────────────────────────────
-  // Sections sharing a common prefix before ' – ' (e.g. "Symphony of Indian Sweets – Hot Dessert")
-  // are collapsed into one sidebar entry. The group's representative index is the first member's index.
-  const sidebarSections = useMemo(() => {
-    const result = []
-    const primaryOnly = sections
-      .map((sec, idx) => ({ sec, idx }))
-      .filter(({ sec }) => !sec._isAddon)
-
-    const seen = new Set()
-    for (const { sec, idx } of primaryOnly) {
-      const dashPos = sec.section.indexOf(' – ')
-      const prefix  = dashPos >= 0 ? sec.section.slice(0, dashPos) : null
-
-      if (prefix && !seen.has(prefix)) {
-        // Check if at least one other section shares this prefix
-        const siblings = primaryOnly.filter(({ sec: s }) => s.section.startsWith(prefix + ' – '))
-        if (siblings.length > 1) {
-          seen.add(prefix)
-          // Group: use prefix as label, first sibling as representative index
-          result.push({
-            label: prefix,
-            repIdx: siblings[0].idx,
-            memberIndices: siblings.map(s => s.idx),
-            isGroup: true,
-          })
-          continue
-        }
-      }
-      if (prefix && seen.has(prefix)) continue  // already added as part of group
-      result.push({ label: sec.section, repIdx: idx, memberIndices: [idx], isGroup: false })
-    }
-    return result
-  }, [sections])
-
-  // Active sidebar entry (the one whose repIdx matches activeSection,
-  // or whose memberIndices includes activeSection)
-  const activeSidebarEntry = useMemo(() =>
-    sidebarSections.find(e => e.memberIndices.includes(activeSection)) ?? sidebarSections[0],
-  [sidebarSections, activeSection])
-
-  // All primary sections that are currently "active" (may be multiple for a group)
-  const activeSections = useMemo(() =>
-    (activeSidebarEntry?.memberIndices ?? [activeSection]).map(i => sections[i]).filter(Boolean),
-  [activeSidebarEntry, activeSection, sections])
-
-  const displayItems = useMemo(() => {
-    if (!isGlobalSearch) {
-      if (!activeSidebarEntry) return []
-      // Collect items from all sections in this sidebar entry, tagging each with its subsection label
-      const results = []
-      for (const sec of activeSections) {
-        const si = sections.indexOf(sec)
-        sec.items.forEach((it, ii) => {
-          results.push({
-            ...it,
-            _ii: ii,
-            _si: si,
-            _sectionName: sec.section,
-            _isAddon: false,
-            // Subsection label only shown when there are multiple sections in this group
-            _subLabel: activeSidebarEntry.isGroup ? sec.section.split(' – ').slice(1).join(' – ') : null,
-          })
-        })
-      }
-      return results
-    }
-    // Global search — scan all non-addon sections
-    const q = searchQuery.toLowerCase()
-    const results = []
-    sections.forEach((sec, si) => {
-      if (sec._isAddon) return
-      sec.items.forEach((it, ii) => {
-        if (it.name.toLowerCase().includes(q) || it.description?.toLowerCase().includes(q)) {
-          results.push({ ...it, _ii: ii, _si: si, _sectionName: sec.section, _isAddon: false, _subLabel: null })
-        }
-      })
-    })
-    return results
-  }, [activeSidebarEntry, activeSections, searchQuery, isGlobalSearch, sections])
-
-  // Addon items that match any section in the current sidebar entry
-  const addonDisplayItems = useMemo(() => {
-    if (isGlobalSearch || !activeSidebarEntry || activeSidebarEntry.memberIndices.every(i => sections[i]?._isAddon)) return []
-
-    function normalize(name) {
-      return name.toLowerCase().replace(/\s*\(.*?\)\s*$/, '').trim()
-    }
-
-    const primaryNames = new Set(
-      activeSections.flatMap(sec => sec.items.map(it => it.name.toLowerCase().trim()))
-    )
-
-    const results = []
-    const seenNames = new Set()
-
-    activeSections.forEach(primarySec => {
-      const primaryNorm = normalize(primarySec.section)
-      sections.forEach((sec, si) => {
-        if (!sec._isAddon) return
-        const addonNorm = normalize(sec.section)
-        if (addonNorm !== primaryNorm &&
-            !addonNorm.startsWith(primaryNorm) &&
-            !primaryNorm.startsWith(addonNorm)) return
-        sec.items.forEach((it, ii) => {
-          const nameLower = it.name.toLowerCase().trim()
-          if (primaryNames.has(nameLower) || seenNames.has(nameLower)) return
-          seenNames.add(nameLower)
-          results.push({ ...it, _ii: ii, _si: si, _sectionName: sec.section, _isAddon: true, _subLabel: null })
-        })
-      })
-    })
-    return results
-  }, [activeSidebarEntry, activeSections, isGlobalSearch, sections])
-
-  const totalSelected = orderList.length
 
   const PANEL_H   = 'calc(100vh - 9rem)'
   const STICKY_TOP = '7rem'
