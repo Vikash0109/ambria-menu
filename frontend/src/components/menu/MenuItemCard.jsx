@@ -24,9 +24,16 @@ export default function MenuItemCard({
 
   return (
     <div
+      role="button"
+      tabIndex={0}
+      onClick={toggle}
+      onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && toggle()}
+      aria-pressed={added}
+      aria-label={added ? `Remove ${item.name}` : `Add ${item.name}`}
       className="flex flex-col rounded-xl transition-all duration-150"
       style={{
         height: '100%',
+        cursor: 'pointer',
         background: added ? 'var(--surface-4)' : 'var(--surface-3)',
         border: `1px solid ${added ? 'var(--gold)' : 'rgba(255,255,255,0.07)'}`,
         boxShadow: added ? '0 0 16px rgba(201,168,76,0.12)' : 'none',
@@ -65,11 +72,9 @@ export default function MenuItemCard({
           </p>
         </div>
 
-        {/* Checkbox */}
-        <button
-          type="button"
-          onClick={toggle}
-          aria-label={added ? `Remove ${item.name}` : `Add ${item.name}`}
+        {/* Checkbox (visual only — card click handles toggle) */}
+        <div
+          aria-hidden="true"
           className="shrink-0 mt-0.5 w-6 h-6 rounded-full flex items-center justify-center transition-all"
           style={{
             background: added
@@ -84,7 +89,7 @@ export default function MenuItemCard({
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
           )}
-        </button>
+        </div>
       </div>
 
       {/* ADD-ON badge */}
@@ -114,6 +119,7 @@ export default function MenuItemCard({
       <div
         className="px-3 pb-3 pt-2 space-y-2"
         style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}
+        onClick={e => e.stopPropagation()}
       >
         {config.notes && (
           <textarea
