@@ -85,7 +85,66 @@ export async function createEvent(req, res) {
   }
 }
 
-// ── Save final order against an event ────────────────────────────────────────
+// ── Update an existing event (edit form re-submit) ───────────────────────────
+// PUT /api/events/:id
+export async function updateEvent(req, res) {
+  try {
+    const {
+      name, phone, email,
+      guestCount, vegCount, nonVegCount,
+      occasion, eventDate, eventTime, venue,
+    } = req.body ?? {}
+
+    if (!name || !phone || !email || !guestCount || !occasion || !eventDate || !venue) {
+      return res.status(400).json({ message: 'All required fields must be provided.' })
+    }
+
+    const cleanEmail = sanitizeStr(email, 254).toLowerCase()
+    if (!EMAIL_RE.test(cleanEmail)) {
+      return res.status(400).json({ message: 'Invalid email address.' })
+    }
+
+    const cleanPhone = sanitizeStr(phone, 30)
+    if (!PHONE_RE.test(cleanPhone)) {
+      return res.status(400).json({ message: 'Invalid phone number.' })
+    }
+
+    const guests = Number(guestCount)
+    if (!Number.isInteger(guests) || guests < 1 || guests > 100000) {
+      return res.status(400).json({ message: 'Guest count must be a whole number between 1 and 100,000.' })
+    }
+
+    const veg    = Math.max(0, Number(vegCount)    || 0)
+    const nonVeg = Math.max(0, Number(nonVegCount) || 0)
+
+    const menuTier = guests >= 150 ? 'premium' : 'standard'
+
+    const event = await Event.findByIdAndUpdate(
+      req.params.id,
+      {
+        name:        sanitizeStr(name, 100),
+        phone:       cleanPhone,
+        email:       cleanEmail,
+        guestCount:  guests,
+        vegCount:    veg,
+        nonVegCount: nonVeg,
+        occasion:    sanitizeStr(occasion, 100),
+        eventDate:   sanitizeStr(eventDate, 20),
+        eventTime:   sanitizeStr(eventTime ?? '', 50),
+        venue:       sanitizeStr(venue, 200),
+        menuTier,
+      },
+      { new: true }
+    )
+
+    if (!event) return res.status(404).json({ message: 'Event not found.' })
+
+    return res.json({ eventId: event._id, menuTier, message: 'Event updated.' })
+  } catch (err) {
+    console.error('updateEvent error:', err)
+    return res.status(500).json({ message: 'Server error.' })
+  }
+}
 // POST /api/events/:id/order
 export async function saveOrder(req, res) {
   try {

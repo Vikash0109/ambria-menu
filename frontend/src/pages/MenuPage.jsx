@@ -319,7 +319,7 @@ export default function MenuPage() {
           </div>
 
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/plan')}
             className="hidden sm:flex items-center gap-1 text-xs transition"
             style={{ color: 'var(--text-muted)', fontFamily: 'Inter, sans-serif' }}
             onMouseEnter={e => e.currentTarget.style.color = 'var(--gold)'}

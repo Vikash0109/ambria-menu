@@ -133,13 +133,32 @@ export default function IntakeFormPage() {
       const guests = Number(form.guestCount)
       const vegCount = form._foodPref === 'veg' ? guests : 0
       const nonVegCount = form._foodPref === 'nonveg' ? guests : 0
-      const res = await api.post('/events', {
+      const payload = {
         name: form.name, phone: `+91${form.phone}`, email: form.email,
         guestCount: guests, vegCount, nonVegCount,
         occasion: form.occasion, eventDate: form.eventDate,
         eventTime: form.eventTime, venue: form.venue,
-      })
-      const { eventId, menuTier } = res.data
+      }
+
+      // If an eventId already exists in session (coming back to edit), update it
+      // instead of creating a duplicate event
+      let existingSession = {}
+      try { existingSession = JSON.parse(window.sessionStorage.getItem(FORM_KEY) || '{}') } catch { /* */ }
+      const existingEventId = existingSession.eventId
+
+      let eventId, menuTier
+      if (existingEventId) {
+        // Update the existing event
+        const res = await api.put(`/events/${existingEventId}`, payload)
+        eventId  = existingEventId
+        menuTier = res.data.menuTier ?? existingSession.menuTier
+      } else {
+        // Create a new event
+        const res = await api.post('/events', payload)
+        eventId  = res.data.eventId
+        menuTier = res.data.menuTier
+      }
+
       window.sessionStorage.setItem(FORM_KEY, JSON.stringify({
         ...form, eventId, menuTier, guestCount: guests, foodPref: form._foodPref,
       }))
