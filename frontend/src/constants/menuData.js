@@ -23,7 +23,7 @@ export const magnumVeg = [
     ],
   },
   {
-    section: 'Soup Station (Select any one)',
+    section: 'Soup Station (Select any two)',
     items: [
       { name: 'Tamatar Dhaniya Ka Shorba', description: 'Traditional Indian shorba made with fresh tomatoes & coriander leaves' },
       { name: 'Veg Manchow Soup', description: 'Vegetable broth simmered with exotic vegetables served with fried noodles and Chinese seasoning' },
@@ -506,7 +506,7 @@ export const multicuisineNonVeg = [
     ],
   },
   {
-    section: 'Soup Station – Vegetarian (Select any one)',
+    section: 'Soup Station – Vegetarian (Select any two)',
     items: [
       { name: 'Tamatar Dhaniya Ka Shorba', description: 'Traditional Indian shorba made with fresh tomatoes & coriander leaves' },
       { name: 'Veg Manchow Soup', description: 'Vegetable broth simmered with exotic vegetables served along with fried noodles and chinese Seasoning' },
@@ -517,7 +517,7 @@ export const multicuisineNonVeg = [
     ],
   },
   {
-    section: 'Soup Station – Non-Vegetarian (Select any one)',
+    section: 'Soup Station – Non-Vegetarian (Select any two)',
     items: [
       { name: 'Chicken Hot & Sour Soup', description: 'Spicy Chinese soup made of boiled shredded chicken cooked with chopped fresh veggies simmered in spicy & tangy water' },
       { name: 'Chicken Lemon Coriander Soup', description: 'A healthy clear soup made with fresh coriander leaves, zesty lemon juice, vegetable broth and loaded with fresh chicken' },

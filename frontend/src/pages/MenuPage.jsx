@@ -12,6 +12,14 @@ import { magnumVeg, magnumNonVeg, multicuisineVeg, multicuisineNonVeg } from '..
 // Map collection key → local fallback data
 const LOCAL_COLLECTIONS = { magnumVeg, magnumNonVeg, multicuisineVeg, multicuisineNonVeg }
 
+// Soup sections have a per-user selection limit — only N items are included;
+// items beyond the limit go to extras/orderList.
+const SOUP_LIMIT = 2
+function isSoupSection(sectionName) {
+  const n = sectionName.toLowerCase()
+  return n.includes('soup') || n.includes('shorba')
+}
+
 // Given the primary collection key, return the complementary addon collection key
 function addonKeyFor(primaryKey) {
   if (primaryKey === 'magnumVeg')         return 'multicuisineVeg'
@@ -23,15 +31,16 @@ function addonKeyFor(primaryKey) {
 
 // Select every item in every primary section (indices 0..primaryCount-1)
 // into `selected` map (so cards show pre-checked), but NOT into orderList
-// (sidebar only shows extras the user manually picks)
+// (sidebar only shows extras the user manually picks).
+// Soup sections are NOT pre-selected — user chooses up to SOUP_LIMIT items.
 function selectAllPrimary(sections, primaryCount) {
   const selected = {}
   sections.slice(0, primaryCount).forEach((sec, si) => {
+    if (isSoupSection(sec.section)) return  // soup: start with nothing selected
     sec.items.forEach((_, ii) => {
       selected[itemKey(si, ii)] = 1
     })
   })
-  // orderList starts empty — sidebar is blank until user picks add-ons
   return { selected, orderList: [] }
 }
 
@@ -110,11 +119,36 @@ export default function MenuPage() {
   }, [collectionKey, formSubmitted])
 
   function addItem(key) {
-    // Only addon/extras items belong in orderList — primary items are always
-    // included in the order and should never appear in the sidebar
     const [si] = key.split('__').map(Number)
-    const isAddon = Boolean(sections[si]?._isAddon)
-    if (isAddon && !orderRef.current.includes(key)) {
+    const sec     = sections[si]
+    const isAddon = Boolean(sec?._isAddon)
+    const isSoup  = !isAddon && isSoupSection(sec?.section ?? '')
+
+    if (isSoup) {
+      // Count how many soup items in this section are currently selected (not via orderList)
+      const soupSelectedCount = sec.items.reduce((acc, _, ii) => {
+        const k = itemKey(si, ii)
+        return acc + (selected[k] && !orderRef.current.includes(k) ? 1 : 0)
+      }, 0)
+
+      if (soupSelectedCount < SOUP_LIMIT) {
+        // Under limit — add as a primary (included) selection, not to orderList
+        setSelected(prev => ({ ...prev, [key]: (prev[key] ?? 0) + 1 }))
+      } else {
+        // At or over limit — treat as extra
+        if (!orderRef.current.includes(key)) {
+          orderRef.current = [...orderRef.current, key]
+          syncOrderList()
+        }
+        setSelected(prev => ({ ...prev, [key]: (prev[key] ?? 0) + 1 }))
+      }
+      return
+    }
+
+    // Non-soup primary items are always included, never go to orderList
+    if (!isAddon && !orderRef.current.includes(key)) {
+      // primary — already included, just mark selected
+    } else if (isAddon && !orderRef.current.includes(key)) {
       orderRef.current = [...orderRef.current, key]
       syncOrderList()
     }
@@ -123,12 +157,15 @@ export default function MenuPage() {
 
   function removeItem(key) {
     const [si] = key.split('__').map(Number)
-    const isAddon = Boolean(sections[si]?._isAddon)
+    const sec     = sections[si]
+    const isAddon = Boolean(sec?._isAddon)
+    const isSoup  = !isAddon && isSoupSection(sec?.section ?? '')
+
     setSelected(prev => {
       const qty = (prev[key] ?? 0) - 1
       if (qty <= 0) {
-        // Only remove from orderList if it's an addon item
-        if (isAddon) {
+        // Remove from orderList if it was an extra (addon or soup-over-limit)
+        if (isAddon || (isSoup && orderRef.current.includes(key))) {
           orderRef.current = orderRef.current.filter(k => k !== key)
           syncOrderList()
         }
@@ -164,12 +201,18 @@ export default function MenuPage() {
   function handleSubmit() {
     if (!formSubmitted) return
     // Collect primary items (all pre-selected, not in orderList)
+    // For soup sections: only items selected AND not in orderList count as primary
     const primaryItems = []
     sections.forEach((sec, si) => {
       if (sec._isAddon) return
       sec.items.forEach((item, ii) => {
         const key = itemKey(si, ii)
-        const o   = itemOpts[key] ?? {}
+        const isInOrderList = orderRef.current.includes(key)
+        // Soup items in orderList are extras, not primary
+        if (isSoupSection(sec.section) && isInOrderList) return
+        // Soup items not selected at all — skip
+        if (isSoupSection(sec.section) && !selected[key]) return
+        const o = itemOpts[key] ?? {}
         primaryItems.push({
           id: key,
           name:        item.name,

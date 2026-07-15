@@ -22,7 +22,7 @@ const magnumVeg = [
     { name: 'Thai Veg Spring Roll', description: 'Golden fried crispy rolls filled with vegetable julienne served with sweet chili sauce' },
     { name: 'Honey Chilly Potato', description: 'Crispy-fried potatoes tossed with honey & Chinese sauces topped with sesame seeds' },
   ]},
-  { section: 'Soup Station (Select any one)', items: [
+  { section: 'Soup Station (Select any two)', items: [
     { name: 'Tamatar Dhaniya Ka Shorba', description: 'Traditional Indian shorba made with fresh tomatoes & coriander leaves' },
     { name: 'Veg Manchow Soup', description: 'Vegetable broth simmered with exotic vegetables served with fried noodles and Chinese seasoning' },
     { name: 'Sweet Corn Soup', description: 'Slow simmered broth with American golden sweet corn kernels worked up into a wholesome soup' },
@@ -94,7 +94,7 @@ const magnumNonVeg = [
     { name: 'Amritsari Fish', description: 'Crunchy battered fish fry seasoned with Indian spices, ginger-garlic paste and gram flour' },
     { name: 'Mutton Seekh Kebab', description: 'Mughlai delicacy prepared with succulent kebabs made of minced mutton, onions, herbs and blend of spices' },
   ]},
-  { section: 'Soup Station', items: [
+  { section: 'Soup Station (Select any two)', items: [
     { name: 'Cream of Tomato', description: 'Mild aromatic and creamy fresh tomato soup with toasted bread croutons' },
     { name: 'Chicken Hot & Sour Soup', description: 'Spicy Chinese soup made of boiled shredded chicken cooked with chopped fresh veggies simmered in spicy & tangy water' },
   ]},
@@ -354,7 +354,7 @@ const multicuisineNonVeg = [
     { name: 'Chicken Crostini', description: 'Crusty bread brushed with olive oil topped with chicken in white, red & pesto sauce' },
     { name: 'Chicken Vol-Au-Vents', description: 'Creamy herb sauteed chicken filled in flakey puff shell' },
   ]},
-  { section: 'Soup Station – Vegetarian (Select any one)', items: [
+  { section: 'Soup Station – Vegetarian (Select any two)', items: [
     { name: 'Tamatar Dhaniya Ka Shorba', description: 'Traditional Indian shorba made with fresh tomatoes & coriander leaves' },
     { name: 'Veg Manchow Soup', description: 'Vegetable broth simmered with exotic vegetables served along with fried noodles and chinese Seasoning' },
     { name: 'Sweet Corn Soup', description: 'Slow simmered broth with sweet corn kernels worked up into a wholesome soup' },
@@ -362,7 +362,7 @@ const multicuisineNonVeg = [
     { name: 'Hot And Sour Soup', description: 'Chinese soup combination of savory, spicy and tanginess with vegetables' },
     { name: 'Minestrone', description: 'A thick soup of Italian origin made with vegetables, with the addition of pasta or rice' },
   ]},
-  { section: 'Soup Station – Non-Vegetarian (Select any one)', items: [
+  { section: 'Soup Station – Non-Vegetarian (Select any two)', items: [
     { name: 'Chicken Hot & Sour Soup', description: 'Spicy Chinese soup made of boiled shredded chicken cooked with chopped fresh veggies simmered in spicy & tangy water' },
     { name: 'Chicken Lemon Coriander Soup', description: 'A healthy clear soup made with fresh coriander leaves, zesty lemon juice, vegetable broth and loaded with fresh chicken' },
     { name: 'Chicken Minestrone', description: 'A thick soup of Italian origin made with vegetables, often with the addition of pasta or rice and chicken' },
