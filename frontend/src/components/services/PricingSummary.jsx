@@ -1,4 +1,4 @@
-import { WAITER_PRICE_EACH, OUTFIT_PRICE_EACH, VENDORS, platePriceForSection } from '../../constants/services.js'
+import { WAITER_PRICE_EACH, OUTFIT_PRICE_EACH, VENDORS, platePriceForSection, crockeryTypeForSection } from '../../constants/services.js'
 
 function SummaryRow({ label, detail, amount }) {
   return (
@@ -21,8 +21,18 @@ export default function PricingSummary({
   addOnTotal,
   submitting, onConfirm,
 }) {
-  const paidCrockerySections = Object.entries(crockeryChoices)
-    .filter(([sec, pid]) => pid && platePriceForSection(sec, pid) > 0).length
+  // Count distinct crockery types that are upgraded (not per-section, to avoid double-counting)
+  const paidCrockerySections = (() => {
+    const seenTypes = new Set()
+    let count = 0
+    for (const [sec, pid] of Object.entries(crockeryChoices)) {
+      const type = crockeryTypeForSection(sec)
+      if (seenTypes.has(type)) continue
+      seenTypes.add(type)
+      if (pid && platePriceForSection(sec, pid) > 0) count++
+    }
+    return count
+  })()
 
   return (
     <div

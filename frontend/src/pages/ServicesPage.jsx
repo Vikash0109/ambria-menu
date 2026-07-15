@@ -12,6 +12,7 @@ import {
   DEFAULT_RATIO, DEFAULT_PLATE_ID,
   waiterCountForRatio, waiterCharge, platePrice,
   defaultPlateForSection, platePriceForSection,
+  crockeryTypeForSection,
   getSectionsFromSaved,
 } from '../constants/services.js'
 
@@ -71,8 +72,19 @@ export default function ServicesPage() {
 
   const waiterTotal      = waiterCharge(waiters)
   const outfitTotal      = selectedOutfits.length * 100
-  const crockeryPerGuest = Object.entries(crockeryChoices)
-    .reduce((sum, [sec, pid]) => sum + platePriceForSection(sec, pid), 0)
+  // Charge once per crockery type (beverage/main/soup/chaat/dessert), not per section.
+  // Multiple sections of the same type (e.g. "Juice" + "Tea" = both 'beverage') share one plate choice.
+  const crockeryPerGuest = (() => {
+    const seenTypes = new Set()
+    let sum = 0
+    for (const [sec, pid] of Object.entries(crockeryChoices)) {
+      const type = crockeryTypeForSection(sec)
+      if (seenTypes.has(type)) continue
+      seenTypes.add(type)
+      sum += platePriceForSection(sec, pid)
+    }
+    return sum
+  })()
   const crockeryTotal  = crockeryPerGuest * guestCount
   const vendorTotal    = selectedVendors
     .reduce((sum, id) => sum + (VENDORS.find(v => v.id === id)?.price ?? 0), 0)
