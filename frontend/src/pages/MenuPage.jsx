@@ -244,67 +244,120 @@ export default function MenuPage() {
   const currentSection = sections[activeSection]
   const isGlobalSearch = searchQuery.trim().length > 0
 
+  // ── Section grouping ──────────────────────────────────────────────────────
+  // Sections sharing a common prefix before ' – ' (e.g. "Symphony of Indian Sweets – Hot Dessert")
+  // are collapsed into one sidebar entry. The group's representative index is the first member's index.
+  const sidebarSections = useMemo(() => {
+    const result = []
+    const primaryOnly = sections
+      .map((sec, idx) => ({ sec, idx }))
+      .filter(({ sec }) => !sec._isAddon)
+
+    const seen = new Set()
+    for (const { sec, idx } of primaryOnly) {
+      const dashPos = sec.section.indexOf(' – ')
+      const prefix  = dashPos >= 0 ? sec.section.slice(0, dashPos) : null
+
+      if (prefix && !seen.has(prefix)) {
+        // Check if at least one other section shares this prefix
+        const siblings = primaryOnly.filter(({ sec: s }) => s.section.startsWith(prefix + ' – '))
+        if (siblings.length > 1) {
+          seen.add(prefix)
+          // Group: use prefix as label, first sibling as representative index
+          result.push({
+            label: prefix,
+            repIdx: siblings[0].idx,
+            memberIndices: siblings.map(s => s.idx),
+            isGroup: true,
+          })
+          continue
+        }
+      }
+      if (prefix && seen.has(prefix)) continue  // already added as part of group
+      result.push({ label: sec.section, repIdx: idx, memberIndices: [idx], isGroup: false })
+    }
+    return result
+  }, [sections])
+
+  // Active sidebar entry (the one whose repIdx matches activeSection,
+  // or whose memberIndices includes activeSection)
+  const activeSidebarEntry = useMemo(() =>
+    sidebarSections.find(e => e.memberIndices.includes(activeSection)) ?? sidebarSections[0],
+  [sidebarSections, activeSection])
+
+  // All primary sections that are currently "active" (may be multiple for a group)
+  const activeSections = useMemo(() =>
+    (activeSidebarEntry?.memberIndices ?? [activeSection]).map(i => sections[i]).filter(Boolean),
+  [activeSidebarEntry, activeSection, sections])
+
   const displayItems = useMemo(() => {
     if (!isGlobalSearch) {
-      if (!currentSection) return []
-      return currentSection.items.map((it, ii) => ({
-        ...it,
-        _ii: ii,
-        _si: activeSection,
-        _sectionName: currentSection.section,
-        _isAddon: false,
-      }))
+      if (!activeSidebarEntry) return []
+      // Collect items from all sections in this sidebar entry, tagging each with its subsection label
+      const results = []
+      for (const sec of activeSections) {
+        const si = sections.indexOf(sec)
+        sec.items.forEach((it, ii) => {
+          results.push({
+            ...it,
+            _ii: ii,
+            _si: si,
+            _sectionName: sec.section,
+            _isAddon: false,
+            // Subsection label only shown when there are multiple sections in this group
+            _subLabel: activeSidebarEntry.isGroup ? sec.section.split(' – ').slice(1).join(' – ') : null,
+          })
+        })
+      }
+      return results
     }
-    // Global search — scan all sections (skip addon sections, they appear inline)
+    // Global search — scan all non-addon sections
     const q = searchQuery.toLowerCase()
     const results = []
     sections.forEach((sec, si) => {
       if (sec._isAddon) return
       sec.items.forEach((it, ii) => {
         if (it.name.toLowerCase().includes(q) || it.description?.toLowerCase().includes(q)) {
-          results.push({ ...it, _ii: ii, _si: si, _sectionName: sec.section, _isAddon: false })
+          results.push({ ...it, _ii: ii, _si: si, _sectionName: sec.section, _isAddon: false, _subLabel: null })
         }
       })
     })
     return results
-  }, [currentSection, searchQuery, isGlobalSearch, sections, activeSection])
+  }, [activeSidebarEntry, activeSections, searchQuery, isGlobalSearch, sections])
 
-  // Addon items that match the current primary section (shown inline below a dotted divider)
-  // Uses normalized matching: strips trailing parentheticals and compares case-insensitively
-  // so e.g. "Soup Station (Select any one)" matches "Soup Station (Select any two)",
-  // and "International Cuisine – Pan Asian" matches "International Cuisine – Pan Asian (Teppanyaki Live)"
+  // Addon items that match any section in the current sidebar entry
   const addonDisplayItems = useMemo(() => {
-    if (isGlobalSearch || !currentSection || currentSection._isAddon) return []
+    if (isGlobalSearch || !activeSidebarEntry || activeSidebarEntry.memberIndices.every(i => sections[i]?._isAddon)) return []
 
-    // Normalize: lowercase, strip trailing parenthetical "(…)" and whitespace
     function normalize(name) {
       return name.toLowerCase().replace(/\s*\(.*?\)\s*$/, '').trim()
     }
-    const primaryNorm = normalize(currentSection.section)
 
-    // Collect names already in the primary section so we can deduplicate
-    const primaryNames = new Set(currentSection.items.map(it => it.name.toLowerCase().trim()))
+    const primaryNames = new Set(
+      activeSections.flatMap(sec => sec.items.map(it => it.name.toLowerCase().trim()))
+    )
 
     const results = []
     const seenNames = new Set()
 
-    sections.forEach((sec, si) => {
-      if (!sec._isAddon) return
-      const addonNorm = normalize(sec.section)
-      // Match if either normalized name starts with the other (handles suffix differences)
-      if (addonNorm !== primaryNorm &&
-          !addonNorm.startsWith(primaryNorm) &&
-          !primaryNorm.startsWith(addonNorm)) return
-      sec.items.forEach((it, ii) => {
-        const nameLower = it.name.toLowerCase().trim()
-        // Skip if this item already exists in the primary section or was already added
-        if (primaryNames.has(nameLower) || seenNames.has(nameLower)) return
-        seenNames.add(nameLower)
-        results.push({ ...it, _ii: ii, _si: si, _sectionName: sec.section, _isAddon: true })
+    activeSections.forEach(primarySec => {
+      const primaryNorm = normalize(primarySec.section)
+      sections.forEach((sec, si) => {
+        if (!sec._isAddon) return
+        const addonNorm = normalize(sec.section)
+        if (addonNorm !== primaryNorm &&
+            !addonNorm.startsWith(primaryNorm) &&
+            !primaryNorm.startsWith(addonNorm)) return
+        sec.items.forEach((it, ii) => {
+          const nameLower = it.name.toLowerCase().trim()
+          if (primaryNames.has(nameLower) || seenNames.has(nameLower)) return
+          seenNames.add(nameLower)
+          results.push({ ...it, _ii: ii, _si: si, _sectionName: sec.section, _isAddon: true, _subLabel: null })
+        })
       })
     })
     return results
-  }, [currentSection, isGlobalSearch, sections])
+  }, [activeSidebarEntry, activeSections, isGlobalSearch, sections])
 
   const totalSelected = orderList.length
 
@@ -381,23 +434,25 @@ export default function MenuPage() {
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-2 px-3 py-3">
-            {sections.filter(sec => !sec._isAddon).map((sec) => {
-              const idx     = sections.indexOf(sec)
-              const isActive  = activeSection === idx
-              const nonVeg    = isNonVegSection(sec.section)
-              const dot       = sectionIcon(sec.section)
-              const selCount  = sec.items.filter((_, ii) => selected[itemKey(idx, ii)] > 0).length
-              // also count selected addon items for this section
-              const addonSelCount = sections.reduce((acc, s, si) => {
-                if (!s._isAddon || s.section !== sec.section) return acc
-                return acc + s.items.filter((_, ii) => selected[itemKey(si, ii)] > 0).length
+            {sidebarSections.map((entry) => {
+              const isActive  = entry.memberIndices.includes(activeSection)
+              const totalSel  = entry.memberIndices.reduce((acc, idx) => {
+                const sec = sections[idx]
+                if (!sec) return acc
+                const primary = sec.items.filter((_, ii) => selected[itemKey(idx, ii)] > 0).length
+                const addon   = sections.reduce((a2, s, si) => {
+                  if (!s._isAddon || s.section !== sec.section) return a2
+                  return a2 + s.items.filter((_, ii) => selected[itemKey(si, ii)] > 0).length
+                }, 0)
+                return acc + primary + addon
               }, 0)
-              const totalSel  = selCount + addonSelCount
+              const nonVeg    = isNonVegSection(entry.label)
+              const dot       = sectionIcon(entry.label)
               const accentColor = nonVeg ? '#ef4444' : 'var(--gold)'
               return (
                 <button
-                  key={idx}
-                  onClick={() => switchSection(idx)}
+                  key={entry.repIdx}
+                  onClick={() => switchSection(entry.repIdx)}
                   style={{
                     textAlign: 'left',
                     background: isActive
@@ -410,72 +465,51 @@ export default function MenuPage() {
                     boxShadow: isActive
                       ? `0 0 0 1px ${nonVeg ? 'rgba(239,68,68,0.25)' : 'rgba(201,168,76,0.2)'}, 0 2px 12px rgba(0,0,0,0.3)`
                       : '0 1px 4px rgba(0,0,0,0.2)',
-                    position: 'relative',
-                    overflow: 'hidden',
+                    position: 'relative', overflow: 'hidden',
                   }}
                 >
-                  {/* active top bar */}
                   {isActive && (
-                    <div
-                      style={{
-                        position: 'absolute', top: 0, left: 0, right: 0, height: '2px',
-                        background: nonVeg
-                          ? 'linear-gradient(90deg, transparent, #ef4444, transparent)'
-                          : 'linear-gradient(90deg, transparent, var(--gold), var(--gold-bright), var(--gold), transparent)',
-                      }}
-                    />
+                    <div style={{
+                      position: 'absolute', top: 0, left: 0, right: 0, height: '2px',
+                      background: nonVeg
+                        ? 'linear-gradient(90deg, transparent, #ef4444, transparent)'
+                        : 'linear-gradient(90deg, transparent, var(--gold), var(--gold-bright), var(--gold), transparent)',
+                    }} />
                   )}
                   <div className="flex items-start justify-between gap-1 mb-0.5">
-                    <span
-                      style={{
-                        width: '7px', height: '7px', borderRadius: '50%',
-                        background: dot, flexShrink: 0,
-                        display: 'inline-block', marginTop: '3px',
-                        boxShadow: isActive ? `0 0 6px ${dot}88` : 'none',
-                      }}
-                    />
-                    <div className="flex items-center gap-1">
-                      {totalSel > 0 && (
-                        <span
-                          style={{
-                            fontSize: '0.6rem', fontWeight: 800, lineHeight: 1,
-                            padding: '2px 5px', borderRadius: '999px',
-                            background: isActive ? accentColor : 'rgba(201,168,76,0.18)',
-                            color: isActive ? (nonVeg ? '#fff' : '#0a0a0a') : 'var(--gold)',
-                            fontFamily: 'Inter, sans-serif',
-                            flexShrink: 0,
-                          }}
-                        >
-                          {totalSel}
-                        </span>
-                      )}
-                    </div>
+                    <span style={{
+                      width: '7px', height: '7px', borderRadius: '50%',
+                      background: dot, flexShrink: 0, display: 'inline-block', marginTop: '3px',
+                      boxShadow: isActive ? `0 0 6px ${dot}88` : 'none',
+                    }} />
+                    {totalSel > 0 && (
+                      <span style={{
+                        fontSize: '0.6rem', fontWeight: 800, lineHeight: 1,
+                        padding: '2px 5px', borderRadius: '999px',
+                        background: isActive ? accentColor : 'rgba(201,168,76,0.18)',
+                        color: isActive ? (nonVeg ? '#fff' : '#0a0a0a') : 'var(--gold)',
+                        fontFamily: 'Inter, sans-serif', flexShrink: 0,
+                      }}>
+                        {totalSel}
+                      </span>
+                    )}
                   </div>
-                  <p
-                    style={{
-                      fontSize: '0.72rem', fontWeight: isActive ? 700 : 600, lineHeight: 1.25,
-                      color: isActive
-                        ? nonVeg ? '#fca5a5' : 'var(--gold-light)'
-                        : 'var(--text-primary)',
-                      fontFamily: 'Inter, sans-serif',
-                      display: '-webkit-box', WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical', overflow: 'hidden',
-                      marginBottom: '0.2rem',
-                    }}
-                  >
-                    {sec.section}
+                  <p style={{
+                    fontSize: '0.72rem', fontWeight: isActive ? 700 : 600, lineHeight: 1.25,
+                    color: isActive ? nonVeg ? '#fca5a5' : 'var(--gold-light)' : 'var(--text-primary)',
+                    fontFamily: 'Inter, sans-serif',
+                    display: '-webkit-box', WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical', overflow: 'hidden', marginBottom: '0.2rem',
+                  }}>
+                    {entry.label}
                   </p>
-                  <p
-                    style={{
-                      fontSize: '0.6rem',
-                      color: isActive
-                        ? nonVeg ? 'rgba(252,165,165,0.7)' : 'var(--gold-dim)'
-                        : 'var(--text-muted)',
-                      fontFamily: 'Inter, sans-serif', letterSpacing: '0.01em',
-                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                    }}
-                  >
-                    {sectionCrockery(sec.section)}
+                  <p style={{
+                    fontSize: '0.6rem',
+                    color: isActive ? nonVeg ? 'rgba(252,165,165,0.7)' : 'var(--gold-dim)' : 'var(--text-muted)',
+                    fontFamily: 'Inter, sans-serif', letterSpacing: '0.01em',
+                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                  }}>
+                    {sectionCrockery(entry.label)}
                   </p>
                 </button>
               )
@@ -530,77 +564,77 @@ export default function MenuPage() {
                     style={{ background: 'var(--surface-4)' }}
                   />
                 ))
-              : sections.filter(sec => !sec._isAddon).map((sec, idx) => {
-                  const realIdx   = sections.indexOf(sec)
-                  const selCount  = sec.items.filter((_, ii) => selected[itemKey(realIdx, ii)] > 0).length
-                  // also count selected addon items for this section name
-                  const addonSelCount = sections.reduce((acc, s, si) => {
-                    if (!s._isAddon || s.section !== sec.section) return acc
-                    return acc + s.items.filter((_, ii) => selected[itemKey(si, ii)] > 0).length
+              : sidebarSections.map((entry) => {
+                  const isActive  = entry.memberIndices.includes(activeSection)
+                  // Sum selected counts across all member sections
+                  const totalSel  = entry.memberIndices.reduce((acc, idx) => {
+                    const sec = sections[idx]
+                    if (!sec) return acc
+                    const primary = sec.items.filter((_, ii) => selected[itemKey(idx, ii)] > 0).length
+                    const addon   = sections.reduce((a2, s, si) => {
+                      if (!s._isAddon || s.section !== sec.section) return a2
+                      return a2 + s.items.filter((_, ii) => selected[itemKey(si, ii)] > 0).length
+                    }, 0)
+                    return acc + primary + addon
                   }, 0)
-                  const totalSel  = selCount + addonSelCount
-                  const isActive  = activeSection === realIdx
-                  const nonVeg    = isNonVegSection(sec.section)
-                  const dotColor  = sectionIcon(sec.section)
+                  const nonVeg    = isNonVegSection(entry.label)
+                  const dotColor  = sectionIcon(entry.label)
                   const accentClr = nonVeg ? '#ef4444' : 'var(--gold)'
                   const textColor = isActive
                     ? nonVeg ? '#fca5a5' : 'var(--gold-light)'
                     : 'var(--text-secondary)'
                   return (
-                    <div key={realIdx}>
-                    <button
-                      onClick={() => switchSection(realIdx)}
-                      className="flex items-center gap-2.5 w-full"
-                      style={{
-                        padding: '0.5rem 0.85rem 0.5rem 0.75rem',
-                        textAlign: 'left',
-                        background: isActive
-                          ? nonVeg ? 'rgba(239,68,68,0.13)' : 'rgba(201,168,76,0.1)'
-                          : 'transparent',
-                        borderLeft: `2.5px solid ${isActive ? accentClr : 'transparent'}`,
-                        transition: 'all 0.13s ease',
-                      }}
-                      onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.04)' }}
-                      onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent' }}
-                    >
-                      {/* colored dot */}
-                      <span
+                    <div key={entry.repIdx}>
+                      <button
+                        onClick={() => switchSection(entry.repIdx)}
+                        className="flex items-center gap-2.5 w-full"
                         style={{
-                          width: '7px', height: '7px', borderRadius: '50%',
-                          background: dotColor, flexShrink: 0,
-                          boxShadow: isActive ? `0 0 5px ${dotColor}88` : 'none',
-                          transition: 'box-shadow 0.13s',
+                          padding: '0.5rem 0.85rem 0.5rem 0.75rem',
+                          textAlign: 'left',
+                          background: isActive
+                            ? nonVeg ? 'rgba(239,68,68,0.13)' : 'rgba(201,168,76,0.1)'
+                            : 'transparent',
+                          borderLeft: `2.5px solid ${isActive ? accentClr : 'transparent'}`,
+                          transition: 'all 0.13s ease',
                         }}
-                      />
-                      {/* label */}
-                      <span
-                        style={{
-                          flex: 1, minWidth: 0,
-                          fontSize: '0.72rem', lineHeight: 1.3,
-                          color: textColor,
-                          fontWeight: isActive ? 700 : 400,
-                          fontFamily: 'Inter, sans-serif',
-                          display: '-webkit-box', WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical', overflow: 'hidden',
-                        }}
+                        onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.04)' }}
+                        onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent' }}
                       >
-                        {sec.section}
-                      </span>
-                      {/* selected badge */}
-                      {totalSel > 0 && (
                         <span
                           style={{
-                            flexShrink: 0, fontSize: '0.6rem', fontWeight: 800,
-                            padding: '1px 5px', borderRadius: '999px',
-                            background: isActive ? accentClr : 'rgba(201,168,76,0.18)',
-                            color: isActive ? (nonVeg ? '#fff' : '#0a0a0a') : 'var(--gold)',
+                            width: '7px', height: '7px', borderRadius: '50%',
+                            background: dotColor, flexShrink: 0,
+                            boxShadow: isActive ? `0 0 5px ${dotColor}88` : 'none',
+                            transition: 'box-shadow 0.13s',
+                          }}
+                        />
+                        <span
+                          style={{
+                            flex: 1, minWidth: 0,
+                            fontSize: '0.72rem', lineHeight: 1.3,
+                            color: textColor,
+                            fontWeight: isActive ? 700 : 400,
                             fontFamily: 'Inter, sans-serif',
+                            display: '-webkit-box', WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical', overflow: 'hidden',
                           }}
                         >
-                          {totalSel}
+                          {entry.label}
                         </span>
-                      )}
-                    </button>
+                        {totalSel > 0 && (
+                          <span
+                            style={{
+                              flexShrink: 0, fontSize: '0.6rem', fontWeight: 800,
+                              padding: '1px 5px', borderRadius: '999px',
+                              background: isActive ? accentClr : 'rgba(201,168,76,0.18)',
+                              color: isActive ? (nonVeg ? '#fff' : '#0a0a0a') : 'var(--gold)',
+                              fontFamily: 'Inter, sans-serif',
+                            }}
+                          >
+                            {totalSel}
+                          </span>
+                        )}
+                      </button>
                     </div>
                   )
                 })
@@ -621,19 +655,19 @@ export default function MenuPage() {
           }}
         >
           {/* Section / search header */}
-          {!loading && (currentSection || isGlobalSearch) && (
+          {!loading && (activeSidebarEntry || isGlobalSearch) && (
             <div
               style={{
                 flexShrink: 0,
                 background: isGlobalSearch
                   ? 'rgba(201,168,76,0.06)'
-                  : isNonVegSection(currentSection.section)
+                  : isNonVegSection(activeSidebarEntry.label)
                     ? 'rgba(239,68,68,0.1)'
                     : 'var(--surface-3)',
                 borderBottom: `1px solid ${
                   isGlobalSearch
                     ? 'rgba(201,168,76,0.18)'
-                    : isNonVegSection(currentSection?.section)
+                    : isNonVegSection(activeSidebarEntry?.label)
                       ? 'rgba(239,68,68,0.18)'
                       : 'var(--border-soft)'
                 }`,
@@ -645,7 +679,7 @@ export default function MenuPage() {
                 <div
                   style={{
                     position: 'absolute', top: 0, left: 0, right: 0, height: '2px',
-                    background: isNonVegSection(currentSection?.section)
+                    background: isNonVegSection(activeSidebarEntry?.label)
                       ? 'linear-gradient(90deg, transparent, #ef4444 30%, #ef4444 70%, transparent)'
                       : 'linear-gradient(90deg, transparent, var(--gold) 30%, var(--gold-bright) 50%, var(--gold) 70%, transparent)',
                   }}
@@ -680,31 +714,28 @@ export default function MenuPage() {
                   </>
                 ) : (
                   <>
-                    {/* colored dot */}
                     <span
                       style={{
                         width: '10px', height: '10px', borderRadius: '50%',
                         flexShrink: 0, display: 'inline-block',
-                        background: sectionIcon(currentSection.section),
-                        boxShadow: `0 0 10px ${sectionIcon(currentSection.section)}88`,
+                        background: sectionIcon(activeSidebarEntry.label),
+                        boxShadow: `0 0 10px ${sectionIcon(activeSidebarEntry.label)}88`,
                       }}
                     />
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p
-                          style={{
-                            fontSize: '0.85rem', fontWeight: 700, lineHeight: 1.25,
-                            color: isNonVegSection(currentSection.section) ? '#fca5a5' : 'var(--gold-light)',
-                            fontFamily: 'Inter, sans-serif',
-                            display: '-webkit-box', WebkitLineClamp: 1,
-                            WebkitBoxOrient: 'vertical', overflow: 'hidden',
-                          }}
-                        >
-                          {currentSection.section}
-                        </p>
-                      </div>
+                      <p
+                        style={{
+                          fontSize: '0.85rem', fontWeight: 700, lineHeight: 1.25,
+                          color: isNonVegSection(activeSidebarEntry.label) ? '#fca5a5' : 'var(--gold-light)',
+                          fontFamily: 'Inter, sans-serif',
+                          display: '-webkit-box', WebkitLineClamp: 1,
+                          WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                        }}
+                      >
+                        {activeSidebarEntry.label}
+                      </p>
                       <p style={{ fontSize: '0.65rem', marginTop: '2px', color: 'var(--text-muted)', fontFamily: 'Inter, sans-serif' }}>
-                        {sectionCrockery(currentSection.section)}
+                        {sectionCrockery(activeSidebarEntry.label)}
                       </p>
                     </div>
                     {/* selected / total badge */}
@@ -717,16 +748,14 @@ export default function MenuPage() {
                     >
                       <span style={{
                         fontWeight: 700,
-                        color: isNonVegSection(currentSection.section) ? '#fca5a5' : 'var(--gold)',
+                        color: isNonVegSection(activeSidebarEntry.label) ? '#fca5a5' : 'var(--gold)',
                         fontSize: '0.85rem',
                       }}>
-                        {
-                          currentSection.items.filter((_, ii) => selected[itemKey(activeSection, ii)] > 0).length
-                          + addonDisplayItems.filter(it => selected[itemKey(it._si, it._ii)] > 0).length
-                        }
+                        {displayItems.filter(it => selected[itemKey(it._si, it._ii)] > 0).length
+                          + addonDisplayItems.filter(it => selected[itemKey(it._si, it._ii)] > 0).length}
                       </span>
                       <span style={{ margin: '0 2px' }}>/</span>
-                      {currentSection.items.length + addonDisplayItems.length}
+                      {displayItems.length + addonDisplayItems.length}
                       <br />
                       selected
                     </div>
@@ -751,7 +780,7 @@ export default function MenuPage() {
                   />
                 ))}
               </div>
-            ) : !currentSection ? (
+            ) : !activeSidebarEntry ? (
               <div
                 className="flex items-center justify-center h-full text-sm"
                 style={{ color: 'var(--text-muted)', fontFamily: 'Inter, sans-serif' }}
@@ -774,38 +803,70 @@ export default function MenuPage() {
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-2 xl:grid-cols-3 gap-3" style={{ alignItems: 'stretch' }}>
-                  {displayItems.map(item => (
-                    <div key={`${item._si}__${item._ii}`} className="flex flex-col">
-                      {isGlobalSearch && (
-                        <div className="flex items-center gap-1.5 mb-1.5 px-0.5">
+                {/* Group items by _subLabel and inject subsection dividers */}
+                {(() => {
+                  const groups = []
+                  let lastLabel = undefined
+                  for (const item of displayItems) {
+                    if (item._subLabel !== lastLabel) {
+                      groups.push({ subLabel: item._subLabel, items: [] })
+                      lastLabel = item._subLabel
+                    }
+                    groups[groups.length - 1].items.push(item)
+                  }
+                  return groups.map((group, gi) => (
+                    <div key={gi}>
+                      {/* Subsection divider — only shown for grouped sections */}
+                      {group.subLabel && (
+                        <div style={{ margin: gi === 0 ? '0 0 1rem' : '1.25rem 0 1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                          <div style={{ flex: 1, borderTop: '1px solid rgba(201,168,76,0.2)' }} />
                           <span style={{
-                            width: '6px', height: '6px', borderRadius: '50%', flexShrink: 0, display: 'inline-block',
-                            background: sectionIcon(item._sectionName),
-                          }} />
-                          <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontFamily: 'Inter,sans-serif', letterSpacing: '0.05em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {item._sectionName}
+                            fontSize: '0.62rem', fontWeight: 800, letterSpacing: '0.16em',
+                            textTransform: 'uppercase', color: 'var(--gold)',
+                            fontFamily: 'Inter, sans-serif', whiteSpace: 'nowrap',
+                            padding: '3px 10px', borderRadius: '999px',
+                            background: 'rgba(201,168,76,0.1)',
+                            border: '1px solid rgba(201,168,76,0.3)',
+                          }}>
+                            {group.subLabel}
                           </span>
+                          <div style={{ flex: 1, borderTop: '1px solid rgba(201,168,76,0.2)' }} />
                         </div>
                       )}
-                      <div className="flex-1">
-                        <MenuItemCard
-                          key={item._ii}
-                          item={item}
-                          secIdx={item._si}
-                          itemIdx={item._ii}
-                          qty={selected[itemKey(item._si, item._ii)] ?? 0}
-                          opts={itemOpts[itemKey(item._si, item._ii)] ?? {}}
-                          sectionName={item._sectionName}
-                          isAddon={false}
-                          onAdd={addItem}
-                          onRemove={removeItem}
-                          onOptsChange={updateOpts}
-                        />
+                      <div className="grid grid-cols-2 xl:grid-cols-3 gap-3" style={{ alignItems: 'stretch' }}>
+                        {group.items.map(item => (
+                          <div key={`${item._si}__${item._ii}`} className="flex flex-col">
+                            {isGlobalSearch && (
+                              <div className="flex items-center gap-1.5 mb-1.5 px-0.5">
+                                <span style={{
+                                  width: '6px', height: '6px', borderRadius: '50%', flexShrink: 0, display: 'inline-block',
+                                  background: sectionIcon(item._sectionName),
+                                }} />
+                                <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontFamily: 'Inter,sans-serif', letterSpacing: '0.05em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {item._sectionName}
+                                </span>
+                              </div>
+                            )}
+                            <div className="flex-1">
+                              <MenuItemCard
+                                item={item}
+                                secIdx={item._si}
+                                itemIdx={item._ii}
+                                qty={selected[itemKey(item._si, item._ii)] ?? 0}
+                                opts={itemOpts[itemKey(item._si, item._ii)] ?? {}}
+                                sectionName={item._sectionName}
+                                isAddon={false}
+                                onAdd={addItem}
+                                onRemove={removeItem}
+                                onOptsChange={updateOpts}
+                              />
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
-                  ))}
-                </div>
+                  ))
+                })()}
 
                 {/* Addon items inline below dotted divider */}
                 {addonDisplayItems.length > 0 && (
