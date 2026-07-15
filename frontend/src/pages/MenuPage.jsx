@@ -696,10 +696,13 @@ export default function MenuPage() {
                         color: isNonVegSection(currentSection.section) ? '#fca5a5' : 'var(--gold)',
                         fontSize: '0.85rem',
                       }}>
-                        {currentSection.items.filter((_, ii) => selected[itemKey(activeSection, ii)] > 0).length}
+                        {
+                          currentSection.items.filter((_, ii) => selected[itemKey(activeSection, ii)] > 0).length
+                          + addonDisplayItems.filter(it => selected[itemKey(it._si, it._ii)] > 0).length
+                        }
                       </span>
                       <span style={{ margin: '0 2px' }}>/</span>
-                      {currentSection.items.length}
+                      {currentSection.items.length + addonDisplayItems.length}
                       <br />
                       selected
                     </div>
