@@ -24,9 +24,22 @@ export default function IntakeFormPage() {
   const navigate = useNavigate()
   const [submitting, setSubmitting] = useState(false)
 
-  // Pre-fill from saved session if coming back from /menu
+  // Pre-fill from saved session if coming back from /menu via SPA navigation.
+  // On a hard browser refresh, clear session data so the form starts empty.
   const [form, setForm] = useState(() => {
     try {
+      const isReload = window.performance
+        && window.performance.getEntriesByType('navigation')[0]?.type === 'reload'
+      if (isReload) {
+        window.sessionStorage.removeItem(FORM_KEY)
+        window.sessionStorage.removeItem('feast-selected-items')
+        window.sessionStorage.removeItem('feast-services')
+        return {
+          name: '', phone: '', email: '',
+          guestCount: '', vegCount: '', nonVegCount: '', _foodPref: 'veg',
+          occasion: '', eventDate: '', eventTime: '', venue: '',
+        }
+      }
       const saved = JSON.parse(window.sessionStorage.getItem(FORM_KEY) || '{}')
       if (saved.occasion) {
         return {
