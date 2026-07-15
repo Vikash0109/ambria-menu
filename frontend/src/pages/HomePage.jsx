@@ -389,8 +389,12 @@ export default function HomePage() {
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-4">
-            <Link to="/plan" className="btn-gold inline-flex items-center gap-2 px-8 py-4 rounded-2xl text-sm"
-              style={{ fontFamily: 'Inter,sans-serif', letterSpacing: '0.07em', fontWeight: 700, textDecoration: 'none' }}>
+            <Link
+              to="/plan"
+              className="btn-gold inline-flex items-center gap-2 px-8 py-4 rounded-2xl text-sm"
+              style={{ fontFamily: 'Inter,sans-serif', letterSpacing: '0.07em', fontWeight: 700, textDecoration: 'none' }}
+              onClick={() => window.sessionStorage.removeItem('feast-event-form')}
+            >
               PLAN YOUR EVENT →
             </Link>
             <a href="#contact" className="btn-ghost-gold inline-flex items-center gap-2 px-8 py-4 rounded-2xl text-sm"
@@ -635,7 +639,9 @@ export default function HomePage() {
               <ul className="space-y-2">
                 {[{ label: 'Plan Your Event', to: '/plan' }, { label: 'Our Menu', to: '/plan' }, { label: 'Services', to: '/plan' }, { label: 'Staff Login', to: '/admin/login' }].map(l => (
                   <li key={l.label}>
-                    <Link to={l.to} style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontFamily: 'Inter,sans-serif', textDecoration: 'none', transition: 'color 0.2s' }}
+                    <Link to={l.to}
+                      onClick={() => l.to === '/plan' && window.sessionStorage.removeItem('feast-event-form')}
+                      style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontFamily: 'Inter,sans-serif', textDecoration: 'none', transition: 'color 0.2s' }}
                       onMouseEnter={e => e.target.style.color = 'var(--gold-light)'}
                       onMouseLeave={e => e.target.style.color = 'var(--text-muted)'}>
                       {l.label}

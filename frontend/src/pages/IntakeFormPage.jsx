@@ -23,10 +23,32 @@ const AMBRIA_VENUES = [
 export default function IntakeFormPage() {
   const navigate = useNavigate()
   const [submitting, setSubmitting] = useState(false)
-  const [form, setForm] = useState({
-    name: '', phone: '', email: '',
-    guestCount: '', vegCount: '', nonVegCount: '', _foodPref: 'veg',
-    occasion: '', eventDate: '', eventTime: '', venue: '',
+
+  // Pre-fill from saved session if coming back from /menu
+  const [form, setForm] = useState(() => {
+    try {
+      const saved = JSON.parse(window.sessionStorage.getItem(FORM_KEY) || '{}')
+      if (saved.occasion) {
+        return {
+          name:        saved.name        ?? '',
+          phone:       saved.phone       ?? '',
+          email:       saved.email       ?? '',
+          guestCount:  saved.guestCount  ? String(saved.guestCount) : '',
+          vegCount:    saved.vegCount    ?? '',
+          nonVegCount: saved.nonVegCount ?? '',
+          _foodPref:   saved._foodPref   ?? saved.foodPref ?? 'veg',
+          occasion:    saved.occasion    ?? '',
+          eventDate:   saved.eventDate   ?? '',
+          eventTime:   saved.eventTime   ?? '',
+          venue:       saved.venue       ?? '',
+        }
+      }
+    } catch { /* ignore */ }
+    return {
+      name: '', phone: '', email: '',
+      guestCount: '', vegCount: '', nonVegCount: '', _foodPref: 'veg',
+      occasion: '', eventDate: '', eventTime: '', venue: '',
+    }
   })
   const [errors, setErrors] = useState({})
   const [venueSuggestions, setVenueSuggestions] = useState([])
@@ -47,9 +69,8 @@ export default function IntakeFormPage() {
     }
   }, [venueHighlight])
 
-  useEffect(() => {
-    window.sessionStorage.removeItem(FORM_KEY)
-  }, [])
+  // Only wipe the saved session when coming fresh from HomePage (not on back-nav from /menu)
+  // — handled by HomePage clearing it on "Plan your event" click instead
 
   function set(field, value) {
     setForm(prev => ({ ...prev, [field]: value }))
