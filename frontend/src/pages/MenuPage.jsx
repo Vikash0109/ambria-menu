@@ -282,7 +282,12 @@ export default function MenuPage() {
     }
     const primaryNorm = normalize(currentSection.section)
 
+    // Collect names already in the primary section so we can deduplicate
+    const primaryNames = new Set(currentSection.items.map(it => it.name.toLowerCase().trim()))
+
     const results = []
+    const seenNames = new Set()
+
     sections.forEach((sec, si) => {
       if (!sec._isAddon) return
       const addonNorm = normalize(sec.section)
@@ -291,6 +296,10 @@ export default function MenuPage() {
           !addonNorm.startsWith(primaryNorm) &&
           !primaryNorm.startsWith(addonNorm)) return
       sec.items.forEach((it, ii) => {
+        const nameLower = it.name.toLowerCase().trim()
+        // Skip if this item already exists in the primary section or was already added
+        if (primaryNames.has(nameLower) || seenNames.has(nameLower)) return
+        seenNames.add(nameLower)
         results.push({ ...it, _ii: ii, _si: si, _sectionName: sec.section, _isAddon: true })
       })
     })
