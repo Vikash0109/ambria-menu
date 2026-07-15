@@ -297,17 +297,28 @@ export default function MenuPage() {
 
     activeSections.forEach(primarySec => {
       const primaryNorm = normalize(primarySec.section)
+      // Extract the primary section's own suffix (e.g. "Hot Dessert" from "Symphony – Hot Dessert")
+      const primarySuffix = primarySec.section.includes(' \u2013 ')
+        ? primarySec.section.split(' \u2013 ').slice(1).join(' \u2013 ')
+        : null
+
       sections.forEach((sec, si) => {
         if (!sec._isAddon) return
         const addonNorm = normalize(sec.section)
         if (addonNorm !== primaryNorm &&
             !addonNorm.startsWith(primaryNorm) &&
             !primaryNorm.startsWith(addonNorm)) return
+        // Derive subsection label from the addon section's suffix
+        const addonSuffix = sec.section.includes(' \u2013 ')
+          ? sec.section.split(' \u2013 ').slice(1).join(' \u2013 ')
+          : null
+        // Only show as subLabel if it differs from the primary suffix (i.e. it's a new subdivision)
+        const subLabel = addonSuffix && addonSuffix !== primarySuffix ? addonSuffix : null
         sec.items.forEach((it, ii) => {
           const nameLower = it.name.toLowerCase().trim()
           if (primaryNames.has(nameLower) || seenNames.has(nameLower)) return
           seenNames.add(nameLower)
-          results.push({ ...it, _ii: ii, _si: si, _sectionName: sec.section, _isAddon: true, _subLabel: null })
+          results.push({ ...it, _ii: ii, _si: si, _sectionName: sec.section, _isAddon: true, _subLabel: subLabel })
         })
       })
     })
@@ -870,26 +881,58 @@ export default function MenuPage() {
                       </span>
                       <div style={{ flex: 1, borderTop: '2px dashed rgba(201,168,76,0.25)' }} />
                     </div>
-                    <div className="grid grid-cols-2 xl:grid-cols-3 gap-3" style={{ alignItems: 'stretch' }}>
-                      {addonDisplayItems.map(item => (
-                        <div key={`${item._si}__${item._ii}`} className="flex flex-col">
-                          <div className="flex-1">
-                            <MenuItemCard
-                              item={item}
-                              secIdx={item._si}
-                              itemIdx={item._ii}
-                              qty={selected[itemKey(item._si, item._ii)] ?? 0}
-                              opts={itemOpts[itemKey(item._si, item._ii)] ?? {}}
-                              sectionName={item._sectionName}
-                              isAddon={true}
-                              onAdd={addItem}
-                              onRemove={removeItem}
-                              onOptsChange={updateOpts}
-                            />
+                    {/* Group addon items by _subLabel, inject subsection dividers */}
+                    {(() => {
+                      const groups = []
+                      let lastLabel = undefined
+                      for (const item of addonDisplayItems) {
+                        if (item._subLabel !== lastLabel) {
+                          groups.push({ subLabel: item._subLabel, items: [] })
+                          lastLabel = item._subLabel
+                        }
+                        groups[groups.length - 1].items.push(item)
+                      }
+                      return groups.map((group, gi) => (
+                        <div key={gi}>
+                          {group.subLabel && (
+                            <div style={{ margin: gi === 0 ? '0 0 1rem' : '1.25rem 0 1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                              <div style={{ flex: 1, borderTop: '1px solid rgba(201,168,76,0.2)' }} />
+                              <span style={{
+                                fontSize: '0.62rem', fontWeight: 800, letterSpacing: '0.16em',
+                                textTransform: 'uppercase', color: 'var(--gold)',
+                                fontFamily: 'Inter, sans-serif', whiteSpace: 'nowrap',
+                                padding: '3px 10px', borderRadius: '999px',
+                                background: 'rgba(201,168,76,0.1)',
+                                border: '1px solid rgba(201,168,76,0.3)',
+                              }}>
+                                {group.subLabel}
+                              </span>
+                              <div style={{ flex: 1, borderTop: '1px solid rgba(201,168,76,0.2)' }} />
+                            </div>
+                          )}
+                          <div className="grid grid-cols-2 xl:grid-cols-3 gap-3" style={{ alignItems: 'stretch' }}>
+                            {group.items.map(item => (
+                              <div key={`${item._si}__${item._ii}`} className="flex flex-col">
+                                <div className="flex-1">
+                                  <MenuItemCard
+                                    item={item}
+                                    secIdx={item._si}
+                                    itemIdx={item._ii}
+                                    qty={selected[itemKey(item._si, item._ii)] ?? 0}
+                                    opts={itemOpts[itemKey(item._si, item._ii)] ?? {}}
+                                    sectionName={item._sectionName}
+                                    isAddon={true}
+                                    onAdd={addItem}
+                                    onRemove={removeItem}
+                                    onOptsChange={updateOpts}
+                                  />
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         </div>
-                      ))}
-                    </div>
+                      ))
+                    })()}
                   </>
                 )}
               </>
