@@ -26,11 +26,15 @@ export default function IntakeFormPage() {
 
   // Pre-fill from saved session if coming back from /menu via SPA navigation.
   // On a hard browser refresh, clear session data so the form starts empty.
+  // We distinguish the two cases with a 'feast-navigated' flag set on forward navigation.
   const [form, setForm] = useState(() => {
     try {
       const isReload = window.performance
         && window.performance.getEntriesByType('navigation')[0]?.type === 'reload'
-      if (isReload) {
+      const wasNavigated = window.sessionStorage.getItem('feast-navigated') === '1'
+
+      if (isReload && !wasNavigated) {
+        // True browser refresh — wipe everything
         window.sessionStorage.removeItem(FORM_KEY)
         window.sessionStorage.removeItem('feast-selected-items')
         window.sessionStorage.removeItem('feast-services')
@@ -40,6 +44,9 @@ export default function IntakeFormPage() {
           occasion: '', eventDate: '', eventTime: '', venue: '',
         }
       }
+
+      // Back-navigation from /menu — consume the flag and restore the form
+      window.sessionStorage.removeItem('feast-navigated')
       const saved = JSON.parse(window.sessionStorage.getItem(FORM_KEY) || '{}')
       if (saved.occasion) {
         return {
@@ -175,6 +182,7 @@ export default function IntakeFormPage() {
       window.sessionStorage.setItem(FORM_KEY, JSON.stringify({
         ...form, eventId, menuTier, guestCount: guests, foodPref: form._foodPref,
       }))
+      window.sessionStorage.setItem('feast-navigated', '1')
       navigate('/menu')
     } catch (err) {
       toast.error(err?.response?.data?.message ?? 'Could not submit. Please try again.')
