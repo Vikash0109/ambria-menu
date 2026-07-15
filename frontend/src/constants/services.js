@@ -1,6 +1,5 @@
 // ─── Pricing ──────────────────────────────────────────────────────────────────
 export const WAITER_PRICE_EACH = 100   // ₹100 per waiter
-export const OUTFIT_PRICE_EACH = 100   // ₹100 per outfit
 
 // ─── Staffing ratios ──────────────────────────────────────────────────────────
 export const RATIOS = [
@@ -11,14 +10,21 @@ export const RATIOS = [
 export const DEFAULT_RATIO = '1:10'
 
 // ─── Outfit catalogue ─────────────────────────────────────────────────────────
+// isDefault → included in package at no extra cost
+// price     → add-on charge per outfit per waiter
 export const OUTFITS = [
-  { id: 'kurta-white',   label: 'White Kurta',    color: '#f5f0e8' },
-  { id: 'kurta-black',   label: 'Black Sherwani', color: '#2d2d2d' },
-  { id: 'vest-gold',     label: 'Gold Waistcoat', color: '#c8902e' },
-  { id: 'suit-navy',     label: 'Navy Suit',      color: '#1e3a5f' },
-  { id: 'pathani-beige', label: 'Beige Pathani',  color: '#d4c5a9' },
-  { id: 'indo-maroon',   label: 'Maroon Indo',    color: '#800000' },
+  { id: 'kurta-white',   label: 'White Kurta',    color: '#f5f0e8', price: 0,   isDefault: true  },
+  { id: 'kurta-black',   label: 'Black Sherwani', color: '#2d2d2d', price: 150, isDefault: false },
+  { id: 'vest-gold',     label: 'Gold Waistcoat', color: '#c8902e', price: 200, isDefault: false },
+  { id: 'suit-navy',     label: 'Navy Suit',       color: '#1e3a5f', price: 250, isDefault: false },
+  { id: 'pathani-beige', label: 'Beige Pathani',  color: '#d4c5a9', price: 180, isDefault: false },
+  { id: 'indo-maroon',   label: 'Maroon Indo',    color: '#800000', price: 175, isDefault: false },
 ]
+
+/** Returns the price of an outfit by id */
+export function outfitPrice(id) {
+  return OUTFITS.find(o => o.id === id)?.price ?? 0
+}
 
 // ─── Crockery plate types ─────────────────────────────────────────────────────
 // isDefault → included in package (shown as "INCLUDED")

@@ -1,4 +1,4 @@
-import { WAITER_PRICE_EACH, OUTFIT_PRICE_EACH, VENDORS, platePriceForSection, crockeryTypeForSection } from '../../constants/services.js'
+import { WAITER_PRICE_EACH, OUTFITS, VENDORS, platePriceForSection, crockeryTypeForSection } from '../../constants/services.js'
 
 function SummaryRow({ label, detail, amount }) {
   return (
@@ -65,10 +65,15 @@ export default function PricingSummary({
           />
           <SummaryRow
             label="Outfit Charges"
-            detail={selectedOutfits.length > 0
-              ? `₹${OUTFIT_PRICE_EACH} × 1 outfit`
-              : 'None selected'}
-            amount={`₹${outfitTotal}`}
+            detail={(() => {
+              if (selectedOutfits.length === 0) return 'None selected'
+              const o = OUTFITS.find(x => x.id === selectedOutfits[0])
+              if (!o) return 'None selected'
+              return o.isDefault ? `${o.label} · Included` : `${o.label} · ₹${o.price}`
+            })()}
+            amount={selectedOutfits.length > 0 && OUTFITS.find(x => x.id === selectedOutfits[0])?.isDefault
+              ? 'Included'
+              : `₹${outfitTotal}`}
           />
           <SummaryRow
             label="Crockery Charges"

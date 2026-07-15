@@ -14,6 +14,7 @@ import {
   defaultPlateForSection, platePriceForSection,
   crockeryTypeForSection,
   getSectionsFromSaved,
+  outfitPrice,
 } from '../constants/services.js'
 
 const SERVICE_SECTIONS = [
@@ -71,7 +72,7 @@ export default function ServicesPage() {
   useEffect(() => { window.scrollTo({ top: 0, behavior: 'instant' }) }, [])
 
   const waiterTotal      = waiterCharge(waiters)
-  const outfitTotal      = selectedOutfits.length * 100
+  const outfitTotal      = selectedOutfits.reduce((sum, id) => sum + outfitPrice(id), 0)
   // Charge once per crockery type (beverage/main/soup/chaat/dessert), not per section.
   // Multiple sections of the same type (e.g. "Juice" + "Tea" = both 'beverage') share one plate choice.
   const crockeryPerGuest = (() => {

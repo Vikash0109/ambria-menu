@@ -5,7 +5,7 @@ import { FORM_KEY } from '../lib/utils.js'
 import Navbar from '../components/Navbar.jsx'
 import OrderSuccessModal from '../components/OrderSuccessModal.jsx'
 import {
-  OUTFITS, VENDORS, OUTFIT_PRICE_EACH, WAITER_PRICE_EACH,
+  OUTFITS, VENDORS, WAITER_PRICE_EACH,
   plateOptionsForSection, platePriceForSection, crockeryTypeForSection,
 } from '../constants/services.js'
 
@@ -561,7 +561,10 @@ export default function ReviewPage() {
                 <ChargeRow
                   label="Outfit Charges"
                   detail={selectedOutfits.length > 0
-                    ? `${selectedOutfits.length} outfit${selectedOutfits.length !== 1 ? 's' : ''} × ₹${OUTFIT_PRICE_EACH}`
+                    ? (() => {
+                        const o = OUTFITS.find(x => x.id === selectedOutfits[0])
+                        return o?.isDefault ? `${o.label} · Included` : `${o?.label} · ₹${o?.price}`
+                      })()
                     : 'None selected'}
                   amount={fmt(outfitCharge)}
                 />

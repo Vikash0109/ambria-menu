@@ -1,19 +1,22 @@
-import { RATIOS, OUTFITS, OUTFIT_PRICE_EACH, WAITER_PRICE_EACH, waiterCountForRatio } from '../../constants/services.js'
+import { RATIOS, OUTFITS, WAITER_PRICE_EACH, waiterCountForRatio } from '../../constants/services.js'
 
 function OutfitCard({ outfit, selected, onToggle }) {
+  const isIncluded = outfit.isDefault  // White Kurta — no extra charge
+
   return (
     <button
       type="button"
       onClick={() => onToggle(outfit.id)}
-      className="relative flex flex-col items-center gap-2.5 rounded-xl px-3 py-4 select-none transition-all duration-150"
+      className="relative flex flex-col items-center gap-2 rounded-xl px-3 py-4 select-none transition-all duration-150"
       style={{
         background: selected ? 'rgba(201,168,76,0.1)' : 'var(--surface-5)',
         border: `1px solid ${selected ? 'var(--gold)' : 'rgba(255,255,255,0.07)'}`,
         boxShadow: selected ? '0 0 12px rgba(201,168,76,0.15)' : 'none',
       }}
       aria-pressed={selected}
-      aria-label={outfit.label}
+      aria-label={`${outfit.label}${isIncluded ? ', included' : `, ₹${outfit.price}`}`}
     >
+      {/* Colour swatch */}
       <span
         className="w-8 h-8 rounded-full border-2 shrink-0"
         style={{
@@ -22,12 +25,29 @@ function OutfitCard({ outfit, selected, onToggle }) {
           boxShadow: selected ? `0 0 8px ${outfit.color}60` : 'none',
         }}
       />
+
+      {/* Label */}
       <span
         className="text-xs font-bold text-center leading-snug"
         style={{ color: selected ? 'var(--gold-light)' : 'var(--text-secondary)', fontFamily: 'Inter, sans-serif' }}
       >
         {outfit.label}
       </span>
+
+      {/* Price tag */}
+      <span
+        className="text-xs font-semibold"
+        style={{
+          color: isIncluded
+            ? (selected ? 'var(--gold)' : '#4caf87')
+            : (selected ? 'var(--gold)' : 'var(--text-muted)'),
+          fontFamily: 'Inter, sans-serif',
+        }}
+      >
+        {isIncluded ? 'Included' : `+₹${outfit.price}`}
+      </span>
+
+      {/* Selected checkmark */}
       {selected && (
         <span
           className="absolute top-2 right-2 w-4 h-4 rounded-full flex items-center justify-center"
@@ -170,7 +190,7 @@ export default function StaffCard({
             Outfits
           </p>
           <span className="text-xs font-semibold" style={{ color: 'var(--text-muted)', fontFamily: 'Inter, sans-serif' }}>
-            ₹{OUTFIT_PRICE_EACH} per outfit
+            White Kurta included
           </span>
         </div>
 
@@ -191,7 +211,10 @@ export default function StaffCard({
           >
             <span className="text-sm" style={{ color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif' }}>
               {selectedOutfits.length > 0
-                ? `1 outfit × ₹${OUTFIT_PRICE_EACH}`
+                ? (() => {
+                    const o = OUTFITS.find(x => x.id === selectedOutfits[0])
+                    return o?.isDefault ? `${o.label} · Included` : `${o?.label} · +₹${o?.price}`
+                  })()
                 : 'No outfit selected'}
             </span>
             <span className="text-sm font-black" style={{ color: 'var(--text-primary)', fontFamily: 'Inter, sans-serif' }}>
