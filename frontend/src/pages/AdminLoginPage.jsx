@@ -193,7 +193,7 @@ export default function AdminLoginPage() {
                   onMouseEnter={e => e.currentTarget.style.color = 'var(--gold)'}
                   onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
                 >
-                  {showPass ? <EyeOff /> : <EyeOn />}
+                  {showPass ? <EyeOn /> : <EyeOff />}
                 </button>
               </div>
             </div>
